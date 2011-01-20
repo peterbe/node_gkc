@@ -1,6 +1,4 @@
-var L=function() {
-   console.log.apply(console, arguments);
-};
+var utils = require('../utils');
 
 function assert(x) {
    if (!x) {
@@ -8,19 +6,21 @@ function assert(x) {
    }
 }
 
-var Database = require('./database').Database;
+var Database = require('../database').Database;
 
 function test_database() {
    var d = Database();
    var current_question = d.get_next_question([]);
    assert(current_question.text);
-   L(current_question);
+   //L(current_question);
    var answer = d.get_answer(current_question);
    assert(answer.answer);
    assert(answer.accept);
-   L(answer);
+   //L(answer);
    var next_question = d.get_next_question([current_question]);
    assert(next_question.text != current_question.text);
 }
 
+
+// TEST RUNNER!!
 test_database();

@@ -83,5 +83,7 @@ socket.on('message', function(obj){
    __log_message(obj);
    if (obj.question) {
       question_handler.load_question(obj.question);
+   } else if (obj.finished) {
+      question_handler.finish(obj.finished);
    }
 });

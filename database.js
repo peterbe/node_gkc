@@ -1,16 +1,15 @@
-var L=function() {
-   console.log.apply(console, arguments);
-};
-
+var L = require('./utils').L;
 
 exports.Database = function() {
    var _questions = 
-     [{text: 'What year was Rolling Stones formed?',
+     [{id: 'q1',
+	text: 'What year was Rolling Stones formed?',
 	answer:'1962', 
 	accept:['62'], 
 	alternatives:['1958', '1962', '1969', '1974']
      },
-      {text: 'What number is next in this sequence: 1, 2, 3, 4, ...?',
+      {id: 'q2',
+	   text: 'What number is next in this sequence: 1, 2, 3, 4, ...?',
 	   answer: '5', accept:[], alternatives:['5','7','9','13']
       }
      ];
