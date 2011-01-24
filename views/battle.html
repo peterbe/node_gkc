@@ -20,7 +20,11 @@
       <h3>You lost :(</h3>
     </div>    
     
-    <form action="" id="respond">
+    <div id="waiting">
+      <p>Waiting... waiting... waiting...</p>
+    </div>
+    
+    <form action="" id="respond" style="display:none">
     <input type="hidden" id="question_id">
     <div id="question-outer">
       <h3>Question:</h3>
@@ -31,7 +35,8 @@
       </div>
     </div>
     
-      <p>Answer: <input name="text" id="answer"></p>
+      <p>Answer: <input name="text" id="answer" autocomplete="off"></p>
+      <p id="alternatives"><input type="button" id="load-alternatives" value="Give me alternatives"></p>
       <span id="wrong" style="display:none">Wrong :(</span>
     </form>
 

@@ -89,13 +89,17 @@ socket.on('connection', function(client){
    battle.send_to_everyone_else(client, { announcement: client.sessionId + ' connected' });
    
    client.on('message', function(message){
-      L('message', message);
+      L('Incoming message', message);
       if (message.answer) {
 	 var battle = current_client_battles[client.sessionId];
 	 battle.send_to_everyone_else(client, {message: client.sessionId + ' answered something'});
 	 if (battle.check_answer(message.answer)) {
-	    battle.increment_score(client, 3);
-	    battle.send_to_all({update_scoreboard:[client.sessionId, 3]});
+	    var points = 3;
+	    if (battle.has_alternatives(client)) {
+	       points = 1;
+	    }
+	    battle.increment_score(client, points);
+	    battle.send_to_all({update_scoreboard:[client.sessionId, points]});
 	    battle.close_current_question();
 	    battle.send_to_all({message:client.sessionId + ' got it RIGHT!'});
 	    var next_question = battle.get_next_question();
@@ -116,6 +120,11 @@ socket.on('connection', function(client){
 	 } else {
 	    battle.send_to_everyone_else(client, {message:client.sessionId + ' got it wrong'});
 	 }
+      } else if (message.alternatives) {
+	 var battle = current_client_battles[client.sessionId];
+	 var alternatives = battle.load_alternatives(client);
+	 battle.send_to_everyone_else(client, {message:client.sessionId + ' loaded alternatives'});
+	 client.send({alternatives:alternatives});
       } else if (message.timed_out) {
 	 var battle = current_client_battles[client.sessionId];
 	 battle.send_to_all({message:'Question timed out'});

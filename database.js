@@ -59,7 +59,7 @@ exports.Database = function() {
       },
       get_alternatives: function(question) {
 	 for (var i in _questions) {
-	    if (_questions[i].text == question) {
+	    if (_questions[i] == question) {
 	       return _questions[i].alternatives;
 	    }
 	 }

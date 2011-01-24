@@ -20,6 +20,9 @@ var Battle = function(options) {
    // implementing it as an array because as a hash table I can't use any 
    // object as the key
    this.scores = [];
+   // used to keep track of who has loaded alternatives to the current question
+   this.loaded_alternatives = [];
+   
 };
 
 Battle.prototype.save = function() {
@@ -66,16 +69,15 @@ Battle.prototype.add_participant = function(participant) {
 Battle.prototype.get_next_question = function() {
    if (!this.current_question) {
       var x = database.get_next_question(this.sent_questions);
-      //L("X", x);
       this.current_question = x;
    }
    return this.current_question;
 };
 
 Battle.prototype.check_answer = function(answer) {
-   L('In check_answer current_question=', this.current_question);
+   //L('In check_answer current_question=', this.current_question);
    var answer_obj = database.get_answer(this.current_question);
-   L('answer_obj', answer_obj);
+   //L('answer_obj', answer_obj);
    if (answer_obj.answer.toLowerCase() == answer.toLowerCase()) {
       return true;
    }
@@ -90,13 +92,28 @@ Battle.prototype.check_answer = function(answer) {
 Battle.prototype.close_current_question = function() {
    this.sent_questions.push(this.current_question);
    this.current_question = null;
+   this.loaded_alternatives = [];
 };
 
+Battle.prototype.load_alternatives = function(participant) {
+   /* load alternatives of the current question */
+   this.loaded_alternatives.push(participant);
+   var alts = database.get_alternatives(this.current_question);
+   return alts;
+};
+Battle.prototype.has_alternatives = function(participant) {
+   for (var i in this.loaded_alternatives) {
+      if (this.loaded_alternatives[i] == participant) {
+	 return true;
+      }
+   }
+   return false;
+};
+   
 Battle.prototype.increment_score = function(participant, score) {
    // because this.scores is a list we have to loop to find where to 
    // update the array
    var _participant, _score;
-   //L('BEFORE', this.scores);
    for (var i in this.scores) {
       _participant = this.scores[i][0];
       if (_participant == participant) {
@@ -104,7 +121,6 @@ Battle.prototype.increment_score = function(participant, score) {
 	 this.scores[i] = [participant, _score + score];
       }
    }
-   //L('AFTER', this.scores);
 };
 
 Battle.prototype.get_winner = function() {

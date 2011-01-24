@@ -1,0 +1,6 @@
+* If you press the wrong alternative button the alternative buttons
+  should become readonly. 
+
+* In Battle there needs to be an associative array remembering who has
+  already guessed to the current question.
+  (if someone removes the readonly attribute and tries again)
