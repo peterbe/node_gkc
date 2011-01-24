@@ -1,4 +1,4 @@
-var L=function() {
+var L = function() {
    console.log.apply(console, arguments);
 };
 
@@ -21,33 +21,59 @@ function esc(msg){
    return msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 };
 
+
 var question_handler = (function() {
-   var current_question;
+   var _current_question
+     , _timer_clock
+     , _timer_callback;
    
    return {
       load_question: function(question) {
-	 current_question = question;
+	 _current_question = question;
 	 $('#wrong:visible').hide();
 	 $('#answer').removeAttr('readonly').val('');
-	 //T = meta.time;
 	 $('#question li.current').removeClass('current').addClass('past');
-	 $('#question').append($('<li></li>')
-			       .text(question)
+	 $('#question').append($('<li>', 
+				 {text: question.text, id: question.id})
 			       .addClass('current'));
 	 //$('#question_id').val(data.question.id);
-	 this.timer(140);
+	 if (_timer_clock) {
+	    clearTimeout(_timer_clock);
+	 }
+	 //L('_timer_clock', _timer_clock);
+	 this.start_timer(this.timed_out);
 	 $('#answer').focus();
+      },
+      timed_out: function() {
+	 socket.send({timed_out:true});
+      },
+      finish: function(you_won) {
+	 L("finish()", you_won);
+	 clearTimeout(_timer_clock);
+	 $('#question li.current').removeClass('current').addClass('past');
+	 if (you_won) {
+	    $('#you_won').show();
+	 } else {
+	    $('#you_lost').show();
+	 }
+	 $('#timer').hide();
+	 $('form#respond').fadeTo(900, 0.4);
+      },
+      start_timer: function(callback) {
+	 _timer_callback = callback;
+	 this.timer(30);
       },
       timer: function(seconds) {
 	 $('#timer').text(seconds);
 	 if (seconds > 0) {
-	    setTimeout(function() {
+	    _timer_clock = setTimeout(function() {
 	       question_handler.timer(seconds - 1);
 	    }, 1000);
 	 } else {
-	    alert("Time's up!");
 	    $('#question li.current').addClass('past');
 	    $('#answer').removeAttr('readonly');
+	    //alert("Time's up!");
+	    _timer_callback();
 	 }
       }
    }
@@ -71,7 +97,6 @@ var socket = new io.Socket(null, {port: 8888, rememberTransport: false});
 socket.connect();
 
 socket.on('connect', function() {
-   L('setting up form')
    $('form#respond').submit(function() {
       socket.send({answer:$('#answer').val()});
       $('#answer').attr('readonly','readonly');
@@ -83,7 +108,15 @@ socket.on('message', function(obj){
    __log_message(obj);
    if (obj.question) {
       question_handler.load_question(obj.question);
-   } else if (obj.finished) {
-      question_handler.finish(obj.finished);
+   } else if (obj.winner) {
+      question_handler.finish(obj.winner.you_won);
+   } else if (obj.update_scoreboard) {
+      L('update_scoreboard', obj.update_scoreboard);
+      scoreboard.incr_score(obj.update_scoreboard[0], obj.update_scoreboard[1]);
+      scoreboard.display();
+   } else if (obj.init_scoreboard) {
+      L(obj.init_scoreboard);
+      scoreboard.init_players(obj.init_scoreboard);
+      scoreboard.display();
    }
 });

@@ -8,10 +8,18 @@
   </head>
   <body>
     
-    
     <h1>Battle</h1>
     <div id="timer"></div>
-                                     
+    <div id="scoreboard"></div>
+    
+    <div id="you_won" style="display:none">
+      <h3>You won!</h3>
+    </div>
+    
+    <div id="you_lost" style="display:none">
+      <h3>You lost :(</h3>
+    </div>    
+    
     <form action="" id="respond">
     <input type="hidden" id="question_id">
     <div id="question-outer">
@@ -37,19 +45,17 @@
       #log p:nth-child(odd) { background: #F6F6F6; }
       li.past { text-decoration:line-through; }
       li.current { font-weight:bold; }
-      /*
-      #form { width: 782px; background: #333; padding: 5px 10px; display: none; }
-      #form input[type=text] { width: 700px; padding: 5px; background: #fff; border: 1px solid #fff; }
-      #form input[type=submit] { cursor: pointer; background: #999; border: none; padding: 6px 8px; -moz-border-radius: 8px; -webkit-border-radius: 8px; margin-left: 5px; text-shadow: 0 1px 0 #fff; }
-      #form input[type=submit]:hover { background: #A2A2A2; }
-      #form input[type=submit]:active { position: relative; top: 2px; }
-      */
+      #you_won, #you_lost { background-color:#efefef; border:1px solid #333; position:relative; z-index:1; }
+      #you_won h3 { color:green; }
+      #you_lost h3 { color:red; }
+      #scoreboard { position:absolute; top:50px; right:25px; width:200px; border:1px solid black; }
     </style>
     <hr>
     <p>Log...</p>
     <div id="log">
     
     </div>
-    <script src="/js/battle.js"></script>
+    <script src="/js/scoreboard.js"></script>
+    <script src="/js/play.js"></script>
   </body>
 </html>

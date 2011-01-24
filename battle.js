@@ -12,7 +12,7 @@ var Battle = function(options) {
    this.options(merge({
       min_no_people: 2,
       max_no_people: 2,
-      no_questions: 10
+      no_questions: 5
    }, {}), options);
    this.participants = [];
    this.ready_to_play = false;
@@ -30,6 +30,22 @@ Battle.prototype.send_to_all = function(msg) {
    for (var i in this.participants) {
       this.participants[i].send(msg);
    }
+};
+
+Battle.prototype.send_to_everyone_else = function(except, msg) {
+   for (var i in this.participants) {
+      if (except != this.participants[i]) {
+	 this.participants[i].send(msg);
+      }
+   }
+};
+
+Battle.prototype.send_question = function(question) {
+   this.send_to_all({question:{
+           text: question.text,
+	   id: question.id,
+	   genre: question.genre}
+   });
 };
 
 Battle.prototype.is_open = function() {
@@ -71,7 +87,7 @@ Battle.prototype.check_answer = function(answer) {
    return false;
 };
 
-Battle.prototype.close_question = function() {
+Battle.prototype.close_current_question = function() {
    this.sent_questions.push(this.current_question);
    this.current_question = null;
 };

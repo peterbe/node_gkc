@@ -1,5 +1,4 @@
-/**
- * Important note: this application is not suitable for benchmarks!
+/* battle play
  */
 
 var http = require('http')
@@ -35,9 +34,9 @@ app.configure('production', function(){
    app.use(express.errorHandler());
 });
 
-app.get('/chat', function(req, res){ 
-   res.render('chat.html');
-});
+//app.get('/chat', function(req, res){ 
+//   res.render('chat.html');
+//});
 
 app.get('/battle', function(req, res){ 
    res.render('battle.html');
@@ -63,13 +62,11 @@ socket.on('connection', function(client){
    for (var i in battles) {
       if (battles[i].is_open()) {
 	 battle = battles[i];
-	 client.broadcast({log: 'Adding to existing battle'});
 	 break;
       }
    }
    if (!battle) {
       battle = new Battle();
-      client.broadcast({log: 'Created new battle'});
       battles.push(battle);
    }
    battle.add_participant(client);
@@ -77,8 +74,14 @@ socket.on('connection', function(client){
 
    if (battle.ready_to_play) {
       battle.send_to_all({news:"Ready to play!"});
+      
+      var player_names = [];
+      for (var i in battle.participants) {
+	 player_names.push(battle.participants[i].sessionId);
+      }
+      battle.send_to_all({init_scoreboard: player_names});
       var next_question = battle.get_next_question();
-      battle.send_to_all({question:{text: next_question.text, id:next_question.id}});
+      battle.send_question(next_question);
    } else {
       battle.send_to_all({news:"Still waiting for more participants"});
    }
@@ -88,28 +91,40 @@ socket.on('connection', function(client){
    client.on('message', function(message){
       L('message', message);
       if (message.answer) {
-	 battle.send_to_everyone_else({message: client.sessionId + ' answered something'});
-	 //client.broadcast({message: client.sessionId + ' answered something'});
 	 var battle = current_client_battles[client.sessionId];
+	 battle.send_to_everyone_else(client, {message: client.sessionId + ' answered something'});
 	 if (battle.check_answer(message.answer)) {
 	    battle.increment_score(client, 3);
-	    battle.close_question();
-	    client.broadcast({message:client.sessionId + ' got it RIGHT!'});
+	    battle.send_to_all({update_scoreboard:[client.sessionId, 3]});
+	    battle.close_current_question();
+	    battle.send_to_all({message:client.sessionId + ' got it RIGHT!'});
 	    var next_question = battle.get_next_question();
-	    L("Next question IS:", next_question);
 	    if (next_question) {
-	       battle.send_to_all({question:next_question.text});
+	       battle.send_question(next_question);
 	    } else {
-	       battle.send_to_all({finished:{winner: battle.get_winner()}});
+	       var winner = battle.get_winner();
+	       if (winner == null) {
+		  // this means it was a tie!
+		  battle.send_to_all({message: 'It\'s a tie!'});
+		  next_question = battle.get_next_question();
+		  battle.send_question(next_question);
+	       } else {
+		  winner.send({winner:{you_won:true}});
+		  battle.send_to_everyone_else(winner, {winner:{you_won:false}});
+	       }
 	    }
 	 } else {
 	    battle.send_to_everyone_else(client, {message:client.sessionId + ' got it wrong'});
-	    //client.broadcast({message:client.sessionId + ' got it wrong'});
 	 }
+      } else if (message.timed_out) {
+	 var battle = current_client_battles[client.sessionId];
+	 battle.send_to_all({message:'Question timed out'});
+	 battle.close_current_question();
+	 var next_question = battle.get_next_question();
+	 battle.send_question(next_question);
       } else {
 	 var msg = { message: [client.sessionId, message] };
 	 L('msg', msg);
-	 client.broadcast(msg);
       }
    });
    

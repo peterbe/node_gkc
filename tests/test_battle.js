@@ -11,19 +11,14 @@ function test_battle() {
    MockClient.prototype.send = function(msg) {
       this._sent_messages.push(msg);
    };
-   
    var battle = new Battle();
    var client = new MockClient('1');
    battle.add_participant(client);
    assert.ok(battle.is_open(), 'must be open');
    var client2 = new MockClient('2');
-   battle.add_participant(client);
+   battle.add_participant(client2);
    assert.ok(!battle.is_open(), 'max reached');
-   
-   
 }
-
-
 test_battle();
 
 function test_battle_winner() {
@@ -74,3 +69,26 @@ function test_battle_winner() {
 }
 
 test_battle_winner();
+
+
+function test_battle_sending() {
+   var MockClient = function(sessionId) {
+      this.sessionId = sessionId;
+      this._sent_messages = [];
+   };
+   MockClient.prototype.send = function(msg) {
+      this._sent_messages.push(msg);
+   };
+   var battle = new Battle();
+   var client1 = new MockClient('1');
+   var client2 = new MockClient('2');
+   battle.add_participant(client1);
+   battle.add_participant(client2);
+   battle.send_to_everyone_else(client1, 'msg 1');
+   assert.equal(client1._sent_messages.length, 0);
+   assert.equal(client2._sent_messages.length, 1);
+   battle.send_to_all('msg 2');
+   assert.equal(client1._sent_messages.length, 1);
+   assert.equal(client2._sent_messages.length, 2);
+}
+test_battle_sending();
