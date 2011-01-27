@@ -7,16 +7,30 @@ var scoreboard = (function() {
 	 for (var i in player_names) {
 	    _scores[player_names[i]] = 0;
 	 }
+	 this._display();
+      },
+      drop_score: function(player_name) {
+	 _scores[player_name] = -1;
+	 this._display();
       },
       incr_score: function(player_name, points) {
 	 _scores[player_name] += points;
+	 this._display();
       },
-      display: function() {
+      _display: function() {
 	 $('#scoreboard').html('');
-	 var container = $('<dl>');
+	 var name, score, container = $('<dl>');
 	 for (var i in _player_names) {
-	    $('<dt>', {text: _player_names[i]}).appendTo(container);
-	    $('<dd>', {text: _scores[_player_names[i]]}).appendTo(container);
+	    score = _scores[_player_names[i]];
+	    name = $('<dt>', {text: _player_names[i]}).appendTo(container);
+	    if (_scores[_player_names[i]] >= 0) {
+	       $('<dd>', {text: score}).appendTo(container);
+	    } else {
+	       $('<dd>', {text: 'disconnected'})
+		 .addClass('disconnected')
+		 .appendTo(container);
+	       name.addClass('disconnected');
+	    }
 	 }
 	 $('#scoreboard').append(container);
       }

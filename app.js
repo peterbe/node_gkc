@@ -38,14 +38,21 @@ app.configure('production', function(){
 //   res.render('chat.html');
 //});
 
-app.get('/battle', function(req, res){ 
-   res.render('battle.html');
+app.get('/battle', function(req, res){
+   var global_config = {};
+   if (req.query.name) {
+      global_config['user_name'] = req.query.name;
+   }
+   res.render('battle.html', {global_config:JSON.stringify(global_config)});
+   //res.render('battle.html');
 });
 
 app.listen(8888);
   
 
 var Battle = require('./battle').Battle;
+var user_names = require('./user_names').user_names;
+
 
 function assert(t) {
    if (!t) throw new Error("Assertion error");
@@ -54,6 +61,7 @@ function assert(t) {
 var socket = io.listen(app)
   , battles = []
   , current_client_battles = {}
+  , sessionid_names = {}
 ;
 
 socket.on('connection', function(client){
@@ -75,33 +83,35 @@ socket.on('connection', function(client){
    if (battle.ready_to_play) {
       battle.send_to_all({news:"Ready to play!"});
       
+      /*
       var player_names = [];
       for (var i in battle.participants) {
-	 player_names.push(battle.participants[i].sessionId);
+	 player_names.push(user_names.get(battle.participants[i].sessionId));
       }
       battle.send_to_all({init_scoreboard: player_names});
+       */
       var next_question = battle.get_next_question();
       battle.send_question(next_question);
    } else {
       battle.send_to_all({news:"Still waiting for more participants"});
    }
    
-   battle.send_to_everyone_else(client, { announcement: client.sessionId + ' connected' });
+   battle.send_to_everyone_else(client, { announcement: user_names.get(client.sessionId) + ' connected' });
    
    client.on('message', function(message){
       L('Incoming message', message);
       if (message.answer) {
 	 var battle = current_client_battles[client.sessionId];
-	 battle.send_to_everyone_else(client, {message: client.sessionId + ' answered something'});
+	 battle.send_to_everyone_else(client, {message: user_names.get(client.sessionId) + ' answered something'});
 	 if (battle.check_answer(message.answer)) {
 	    var points = 3;
 	    if (battle.has_alternatives(client)) {
 	       points = 1;
 	    }
 	    battle.increment_score(client, points);
-	    battle.send_to_all({update_scoreboard:[client.sessionId, points]});
+	    battle.send_to_all({update_scoreboard:[user_names.get(client.sessionId), points]});
 	    battle.close_current_question();
-	    battle.send_to_all({message:client.sessionId + ' got it RIGHT!'});
+	    battle.send_to_all({message:user_names.get(client.sessionId) + ' got it RIGHT!'});
 	    var next_question = battle.get_next_question();
 	    if (next_question) {
 	       battle.send_question(next_question);
@@ -118,12 +128,13 @@ socket.on('connection', function(client){
 	       }
 	    }
 	 } else {
-	    battle.send_to_everyone_else(client, {message:client.sessionId + ' got it wrong'});
+	    battle.send_to_everyone_else(client, 
+					 {message:user_names.get(client.sessionId) + ' got it wrong'});
 	 }
       } else if (message.alternatives) {
 	 var battle = current_client_battles[client.sessionId];
 	 var alternatives = battle.load_alternatives(client);
-	 battle.send_to_everyone_else(client, {message:client.sessionId + ' loaded alternatives'});
+	 battle.send_to_everyone_else(client, {message:user_names.get(client.sessionId) + ' loaded alternatives'});
 	 client.send({alternatives:alternatives});
       } else if (message.timed_out) {
 	 var battle = current_client_battles[client.sessionId];
@@ -131,6 +142,18 @@ socket.on('connection', function(client){
 	 battle.close_current_question();
 	 var next_question = battle.get_next_question();
 	 battle.send_question(next_question);
+      } else if (message.set_user_name) {
+	 user_names.set(client.sessionId, message.set_user_name);
+	 // if we have all the names, initialize the score board
+	 var battle = current_client_battles[client.sessionId];
+	 if (battle.ready_to_play) {
+	    var player_names = [];
+	    for (var i in battle.participants) {
+	       player_names.push(user_names.get(battle.participants[i].sessionId));
+	    }
+	    battle.send_to_all({init_scoreboard: player_names});
+	 }
+	 
       } else {
 	 var msg = { message: [client.sessionId, message] };
 	 L('msg', msg);
@@ -138,8 +161,13 @@ socket.on('connection', function(client){
    });
    
    client.on('disconnect', function(){
-      L('Disconnected', client.sessionId); 
-      client.broadcast({ announcement: client.sessionId + ' disconnected' });
+      var battle = current_client_battles[client.sessionId];
+      battle.disconnect_participant(client);
+      battle.send_to_all({update_scoreboard:[user_names.get(client.sessionId), -1]});
+      //battle.send_to_all({message:client.sessionId + ' has disconnected'});
+      battle.stop({message:user_names.get(client.sessionId) + ' has disconnected'});
+      //L('Disconnected', client.sessionId); 
+      //client.broadcast({ announcement: client.sessionId + ' disconnected' });
    });
 });
 

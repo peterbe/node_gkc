@@ -17,6 +17,7 @@ var Battle = function(options) {
    this.participants = [];
    this.ready_to_play = false;
    this.sent_questions = [];
+   this.stopped = false;
    // implementing it as an array because as a hash table I can't use any 
    // object as the key
    this.scores = [];
@@ -63,6 +64,22 @@ Battle.prototype.add_participant = function(participant) {
    this.scores.push([participant, 0]);
    if (this.participants.length >= this.options.min_no_people) {
       this.ready_to_play = true;
+   }
+};
+
+Battle.prototype.disconnect_participant = function(participant) {
+   var idx = this.participants.indexOf(participant);
+   if (-1 != idx) {
+      // note, we don't want to splice (remove) from the list of
+      // participants because that will make the battle appear 
+      // unsaturated and will invite new players to join.
+      delete this.participants[idx];
+      //this.participants.splice(idx, 1);
+   }
+   for (var i in this.scores) {
+      if (this.scores[i][0] == participant) {
+	 this.scores[i] = [participant, -1];
+      }
    }
 };
 
@@ -144,8 +161,15 @@ Battle.prototype.get_winner = function() {
    }
 };
 
+Battle.prototype.stop = function(information) {
+   this.stopped = true;
+   this.send_to_all({stop: information});
+}
+
 for (var i in options) {
    Battle.prototype[i] = options[i];
 }
 
 exports.Battle = Battle;
+
+

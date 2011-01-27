@@ -21,6 +21,21 @@ function esc(msg){
    return msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 };
 
+/*
+var names = (function() {
+   var _names = {};
+   return {
+      expand: function(sid) {
+	 var name = _names[sid];
+	 return name;
+      },
+      set_name: function(sid, name) {
+	 _names[sid] = name;
+      }
+   }
+})();
+ */
+
 
 var question_handler = (function() {
    var _current_question
@@ -70,6 +85,16 @@ var question_handler = (function() {
 	 $('#timer').hide();
 	 $('form#respond').fadeTo(900, 0.4);
       },
+      stop: function(information) {
+	 clearTimeout(_timer_clock);
+	 //$('#question li.current').removeClass('current').addClass('past');
+	 $('#timer').hide();
+	 $('form#respond').fadeTo(900, 0.4);
+	 if (information.message) {
+	    $('#information p').text(information.message);
+	    $('#information').show();
+	 }
+      },
       start_timer: function(callback) {
 	 _timer_callback = callback;
 	 this.timer(300);
@@ -109,7 +134,7 @@ var alternatives = (function() {
       },
       answer: function(ans) {
 	 socket.send({answer:ans});
-	 $('#alternatives input.alternative').attr('readonly','readonly');
+	 $('#alternatives input.alternative').attr('readonly','readonly').attr('disable','disable');
       }
    }
 })();
@@ -141,6 +166,9 @@ socket.on('connect', function() {
       $('#answer').attr('readonly','readonly');
       alternatives.load();
    });
+   if (Global.user_name) {
+      socket.send({set_user_name:Global.user_name});
+   }
 });
 
 socket.on('message', function(obj){
@@ -150,12 +178,17 @@ socket.on('message', function(obj){
    } else if (obj.winner) {
       question_handler.finish(obj.winner.you_won);
    } else if (obj.update_scoreboard) {
-      scoreboard.incr_score(obj.update_scoreboard[0], obj.update_scoreboard[1]);
-      scoreboard.display();
+      if (-1 == obj.update_scoreboard[1]) {
+	 scoreboard.drop_score(obj.update_scoreboard[0]);
+      } else {
+	 scoreboard.incr_score(obj.update_scoreboard[0], obj.update_scoreboard[1]);
+      }
    } else if (obj.alternatives) {
       alternatives.show(obj.alternatives);
    } else if (obj.init_scoreboard) {
       scoreboard.init_players(obj.init_scoreboard);
-      scoreboard.display();
+   } else if (obj.stop) {
+      question_handler.stop(obj.stop);
    }
 });
+
