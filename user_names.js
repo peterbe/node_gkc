@@ -8,6 +8,9 @@ exports.user_names = (function() {
       },
       set: function(id, name) {
 	 _names[id] = name;
+      },
+      has: function(id) {
+	 return _names[id] !== undefined;
       }
    }
 })();

@@ -21,27 +21,13 @@ function esc(msg){
    return msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 };
 
-/*
-var names = (function() {
-   var _names = {};
-   return {
-      expand: function(sid) {
-	 var name = _names[sid];
-	 return name;
-      },
-      set_name: function(sid, name) {
-	 _names[sid] = name;
-      }
-   }
-})();
- */
-
 
 var question_handler = (function() {
    var _current_question
      , _initialized = false
      , _timer_clock
-     , _timer_callback;
+     , _timer_callback
+     , _has_answered = false;
    
    return {
       initialize: function() {
@@ -53,16 +39,19 @@ var question_handler = (function() {
 	 if (!_initialized) {
 	    this.initialize();
 	 }
+	 _has_answered = false;
 	 _current_question = question;
 	 $('#wrong:visible').hide();
 	 $('#alternatives input.alternative').remove();
 	 $('#alternatives-outer:visible').hide();
 	 $('#load-alternatives:hidden').show();
-	 $('#answer').removeAttr('readonly').val('');
+	 $('#typed:hidden').show();
+	 $('#answer').removeAttr('readonly').removeAttr('disabled').val('');
 	 $('#question li.current').removeClass('current').addClass('past');
-	 $('#question').append($('<li>', 
-				 {text: question.text, id: question.id})
-			       .addClass('current'));
+	 $('#question').append($('<li>', {id: question.id}
+				).addClass('current')
+			      .append($('<span>', {text: question.text})));
+	 $('#alternatives').fadeTo(0, 1.0);
 	 //$('#question_id').val(data.question.id);
 	 if (_timer_clock) {
 	    clearTimeout(_timer_clock);
@@ -70,8 +59,20 @@ var question_handler = (function() {
 	 //L('_timer_clock', _timer_clock);
 	 this.start_timer(this.timed_out);
 	 $('#answer').focus();
+	 
+	 // check if an image was loaded to the previous question
+	 if (!$('img', $('li.past').eq(-1)).size()) {
+	    $('li.past').eq(-1)
+	      .append($('<img>', {src:'/images/hourglass.png',
+		alt:'Timed out'
+	      }));
+	 }
       },
       timed_out: function() {
+	 $('li.current')
+	   .append($('<img>', {src:'/images/hourglass.png',
+		alt:'Timed out'
+	   }));
 	 socket.send({timed_out:true});
       },
       finish: function(you_won) {
@@ -97,7 +98,7 @@ var question_handler = (function() {
       },
       start_timer: function(callback) {
 	 _timer_callback = callback;
-	 this.timer(300);
+	 this.timer(30);
       },
       timer: function(seconds) {
 	 $('#timer').text(seconds);
@@ -111,6 +112,27 @@ var question_handler = (function() {
 	    //alert("Time's up!");
 	    _timer_callback();
 	 }
+      },
+      right_answer: function() {
+	 $('li.current')
+	   .append($('<img>', {src:'/images/right.png',
+		alt:'Yay! you got it right'
+	   }));
+	         
+      },
+      wrong_answer: function() {
+	 $('li.current')
+	   .append($('<img>', {src:'/images/wrong.png',
+		alt:'Sorry. You got it wrong'
+	   }));
+      },
+      send_answer: function(answer) {
+	 $('#answer').attr('readonly','readonly').attr('disabled','disabled');
+	 socket.send({answer:answer});
+	 _has_answered = true;
+      },
+      has_sent_answer: function() {
+	 return _has_answered;
       }
    }
 })();
@@ -131,10 +153,15 @@ var alternatives = (function() {
 			     }));
 	 }
 	 $('#alternatives-outer').show();
+	 $('#typed:visible').hide();
       },
       answer: function(ans) {
 	 socket.send({answer:ans});
-	 $('#alternatives input.alternative').attr('readonly','readonly').attr('disable','disable');
+	 $('#alternatives input.alternative')
+	   .attr('readonly','readonly')
+	     .attr('disable','disable')
+	       .unbind('click');
+	 $('#alternatives').fadeTo(300, 0.4);
       }
    }
 })();
@@ -158,12 +185,15 @@ socket.connect();
 
 socket.on('connect', function() {
    $('form#respond').submit(function() {
-      socket.send({answer:$('#answer').val()});
-      $('#answer').attr('readonly','readonly');
+      var answer = $.trim($('#answer').val());
+      if (!answer.length || question_handler.has_sent_answer()) {
+	 return false;
+      }
+      question_handler.send_answer(answer);
       return false;
    });
    $('#load-alternatives').click(function() {
-      $('#answer').attr('readonly','readonly');
+      $('#answer').attr('readonly','readonly').attr('disabled','disabled');
       alternatives.load();
    });
    if (Global.user_name) {
@@ -189,6 +219,14 @@ socket.on('message', function(obj){
       scoreboard.init_players(obj.init_scoreboard);
    } else if (obj.stop) {
       question_handler.stop(obj.stop);
+   } else if (obj.answered) {
+      if (obj.answered.right) {
+	 question_handler.right_answer();
+      } else {
+	 question_handler.wrong_answer();
+      }
+   } else if (obj.error) {
+      alert("Error!\n" + obj.error);
    }
 });
 

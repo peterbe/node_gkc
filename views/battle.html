@@ -35,7 +35,8 @@
       </div>
     </div>
     
-      <p>Answer: <input name="text" id="answer" autocomplete="off"></p>
+      <p id="typed"><strong>Answer:</strong>
+      <input name="text" id="answer" autocomplete="off"><input type="submit" value="Go!"></p>
       <p id="alternatives"><input type="button" id="load-alternatives" value="Give me alternatives"></p>
       <span id="wrong" style="display:none">Wrong :(</span>
     </form>
@@ -46,9 +47,9 @@
     
     <style>
       #log { height: 300px; overflow: auto; width: 800px; border: 1px solid #eee; font: 13px Helvetica, Arial; }
-      #log p { padding: 8px; margin: 0; }
+      #log p { padding: 4px; margin: 0; }
       #log p:nth-child(odd) { background: #F6F6F6; }
-      li.past { text-decoration:line-through; }
+      li.past span { text-decoration:line-through; }
       dt.disconnected { text-decoration:line-through; color:#ccc; }
       dd.disconnected { font-size:70%; color:#ccc; }
       li.current { font-weight:bold; }

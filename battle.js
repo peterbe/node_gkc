@@ -23,6 +23,8 @@ var Battle = function(options) {
    this.scores = [];
    // used to keep track of who has loaded alternatives to the current question
    this.loaded_alternatives = [];
+   // track who has attempted to answer the current question
+   this.attempted = [];
    
 };
 
@@ -53,7 +55,7 @@ Battle.prototype.send_question = function(question) {
 };
 
 Battle.prototype.is_open = function() {
-   return this.participants.length < this.options.min_no_people;
+   return this.participants.length < this.options.min_no_people && !this.stopped;
 };
 
 Battle.prototype.add_participant = function(participant) {
@@ -110,6 +112,43 @@ Battle.prototype.close_current_question = function() {
    this.sent_questions.push(this.current_question);
    this.current_question = null;
    this.loaded_alternatives = [];
+   this.attempted = [];
+};
+
+Battle.prototype.remember_has_answered = function(participant) {
+   this.attempted.push(participant);
+};
+
+Battle.prototype.has_answered = function(participant) {
+   for (var i in this.attempted) {
+      if (this.attempted[i] == participant) {
+	 return true;
+      }
+   }   
+   return false;
+};
+
+Battle.prototype.has_everyone_answered = function() {
+   return this.attempted.length == this.participants.length;
+};
+
+Battle.prototype.send_next_question = function() {
+   this.close_current_question();
+   var next_question = this.get_next_question();
+   if (next_question) {
+      this.send_question(next_question);
+   } else {
+      var winner = this.get_winner();
+      if (winner == null) {
+	 // this means it was a tie!
+	 this.send_to_all({message: 'It\'s a tie!'});
+	 next_question = this.get_next_question();
+	 this.send_question(next_question);
+      } else {
+	 winner.send({winner:{you_won:true}});
+	 this.send_to_everyone_else(winner, {winner:{you_won:false}});
+      }
+   }
 };
 
 Battle.prototype.load_alternatives = function(participant) {

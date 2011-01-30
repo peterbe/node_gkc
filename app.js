@@ -81,7 +81,7 @@ socket.on('connection', function(client){
    current_client_battles[client.sessionId] = battle;
 
    if (battle.ready_to_play) {
-      battle.send_to_all({news:"Ready to play!"});
+      //battle.send_to_all({news:"Ready to play!"});
       
       /*
       var player_names = [];
@@ -90,8 +90,12 @@ socket.on('connection', function(client){
       }
       battle.send_to_all({init_scoreboard: player_names});
        */
-      var next_question = battle.get_next_question();
-      battle.send_question(next_question);
+      
+      
+      //var next_question = battle.get_next_question();
+      //battle.send_question(next_question);
+      battle.send_next_question();
+      
    } else {
       battle.send_to_all({news:"Still waiting for more participants"});
    }
@@ -103,6 +107,11 @@ socket.on('connection', function(client){
       if (message.answer) {
 	 var battle = current_client_battles[client.sessionId];
 	 battle.send_to_everyone_else(client, {message: user_names.get(client.sessionId) + ' answered something'});
+	 if (battle.has_answered(client)) {
+	    client.send({error:"Has already answered"});
+	 } else {
+	    battle.remember_has_answered(client);
+	 }
 	 if (battle.check_answer(message.answer)) {
 	    var points = 3;
 	    if (battle.has_alternatives(client)) {
@@ -110,26 +119,13 @@ socket.on('connection', function(client){
 	    }
 	    battle.increment_score(client, points);
 	    battle.send_to_all({update_scoreboard:[user_names.get(client.sessionId), points]});
-	    battle.close_current_question();
-	    battle.send_to_all({message:user_names.get(client.sessionId) + ' got it RIGHT!'});
-	    var next_question = battle.get_next_question();
-	    if (next_question) {
-	       battle.send_question(next_question);
-	    } else {
-	       var winner = battle.get_winner();
-	       if (winner == null) {
-		  // this means it was a tie!
-		  battle.send_to_all({message: 'It\'s a tie!'});
-		  next_question = battle.get_next_question();
-		  battle.send_question(next_question);
-	       } else {
-		  winner.send({winner:{you_won:true}});
-		  battle.send_to_everyone_else(winner, {winner:{you_won:false}});
-	       }
-	    }
-	 } else {
-	    battle.send_to_everyone_else(client, 
-					 {message:user_names.get(client.sessionId) + ' got it wrong'});
+	    client.send({answered:{right:true}});
+	    battle.send_to_everyone_else(client, {answered: {right:false}});
+	    battle.send_next_question();
+	 } else if (battle.has_everyone_answered()) {
+	    L("everyone has answered");
+	    battle.send_to_all({answered: {right:false}});
+	    battle.send_next_question();
 	 }
       } else if (message.alternatives) {
 	 var battle = current_client_battles[client.sessionId];
@@ -139,9 +135,10 @@ socket.on('connection', function(client){
       } else if (message.timed_out) {
 	 var battle = current_client_battles[client.sessionId];
 	 battle.send_to_all({message:'Question timed out'});
-	 battle.close_current_question();
-	 var next_question = battle.get_next_question();
-	 battle.send_question(next_question);
+	 battle.send_next_question();
+	 //battle.close_current_question();
+	 //var next_question = battle.get_next_question();
+	 //battle.send_question(next_question);
       } else if (message.set_user_name) {
 	 user_names.set(client.sessionId, message.set_user_name);
 	 // if we have all the names, initialize the score board
