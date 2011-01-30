@@ -1,8 +1,7 @@
-* If you press the wrong alternative button the alternative buttons
-  should become readonly. 
+* A nice pie for the timer in canvas
+  www.phpied.com/wp-content/uploads/2008/02/canvas-pie.html
 
 * In Battle there needs to be an associative array remembering who has
   already guessed to the current question.
   (if someone removes the readonly attribute and tries again)
   
-* User nodeunit!
