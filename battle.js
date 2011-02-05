@@ -1,11 +1,11 @@
 var L = require('./utils').L;
 
 var Database = require('./database').Database;
+var EditDistanceMatcher = require('./edit_distance').EditDistanceMatcher;
 
 var options = require('../socket.io/lib/socket.io/utils').options
     , merge = require('../socket.io/lib/socket.io/utils').merge;
 
-var database = Database();
 
 var Battle = function(options) {
    //this.id = id;
@@ -18,14 +18,15 @@ var Battle = function(options) {
    this.ready_to_play = false;
    this.sent_questions = [];
    this.stopped = false;
-   // implementing it as an array because as a hash table I can't use any 
+   // implementing it as an array because as a hash table I can't use any
    // object as the key
    this.scores = [];
    // used to keep track of who has loaded alternatives to the current question
    this.loaded_alternatives = [];
    // track who has attempted to answer the current question
    this.attempted = [];
-   
+   this.database = Database();
+
 };
 
 Battle.prototype.save = function() {
@@ -33,13 +34,13 @@ Battle.prototype.save = function() {
 };
 
 Battle.prototype.send_to_all = function(msg) {
-   for (var i in this.participants) {
+   for (var i=0, len=this.participants.length; i < len; i++) {
       this.participants[i].send(msg);
    }
 };
 
 Battle.prototype.send_to_everyone_else = function(except, msg) {
-   for (var i in this.participants) {
+   for (var i=0, len=this.participants.length; i < len; i++) {
       if (except != this.participants[i]) {
 	 this.participants[i].send(msg);
       }
@@ -73,7 +74,7 @@ Battle.prototype.disconnect_participant = function(participant) {
    var idx = this.participants.indexOf(participant);
    if (-1 != idx) {
       // note, we don't want to splice (remove) from the list of
-      // participants because that will make the battle appear 
+      // participants because that will make the battle appear
       // unsaturated and will invite new players to join.
       delete this.participants[idx];
       //this.participants.splice(idx, 1);
@@ -87,25 +88,43 @@ Battle.prototype.disconnect_participant = function(participant) {
 
 Battle.prototype.get_next_question = function() {
    if (!this.current_question) {
-      var x = database.get_next_question(this.sent_questions);
+      var x = this.database.get_next_question(this.sent_questions);
       this.current_question = x;
    }
    return this.current_question;
 };
 
+var ANSWER_WRONG = 'wrong';
+var ANSWER_PERFECT = 'perfect';
+var ANSWER_ACCEPTABLE = 'acceptable';
+
 Battle.prototype.check_answer = function(answer) {
+   return this.check_answer_verbose(answer) != ANSWER_WRONG;
+};
+Battle.prototype.check_answer_verbose = function(answer) {
    //L('In check_answer current_question=', this.current_question);
-   var answer_obj = database.get_answer(this.current_question);
+   var answer_obj = this.database.get_answer(this.current_question);
    //L('answer_obj', answer_obj);
    if (answer_obj.answer.toLowerCase() == answer.toLowerCase()) {
-      return true;
+      return ANSWER_PERFECT;
    }
-   for (var i in answer_obj.accept) {
+   for (var i=0, len=answer_obj.accept.length; i < len; i++) {
       if (answer_obj.accept[i].toLowerCase() == answer.toLowerCase()) {
-	 return true;
+	 return ANSWER_ACCEPTABLE;
       }
    }
-   return false;
+   if (answer_obj.spell_correct) {
+      var against = [answer_obj.answer.toLowerCase()];
+      for (var i=0, len=answer_obj.accept.length; i < len; i++) {
+         against.push(answer_obj.accept[i].toLowerCase());
+      }
+      var edm = new EditDistanceMatcher(against);
+      if (edm.is_matched(answer.toLowerCase())) {
+         return ANSWER_ACCEPTABLE;
+      }
+   }
+   // still here?!
+   return ANSWER_WRONG;
 };
 
 Battle.prototype.close_current_question = function() {
@@ -124,7 +143,7 @@ Battle.prototype.has_answered = function(participant) {
       if (this.attempted[i] == participant) {
 	 return true;
       }
-   }   
+   }
    return false;
 };
 
@@ -154,7 +173,7 @@ Battle.prototype.send_next_question = function() {
 Battle.prototype.load_alternatives = function(participant) {
    /* load alternatives of the current question */
    this.loaded_alternatives.push(participant);
-   var alts = database.get_alternatives(this.current_question);
+   var alts = this.database.get_alternatives(this.current_question);
    return alts;
 };
 Battle.prototype.has_alternatives = function(participant) {
@@ -165,9 +184,9 @@ Battle.prototype.has_alternatives = function(participant) {
    }
    return false;
 };
-   
+
 Battle.prototype.increment_score = function(participant, score) {
-   // because this.scores is a list we have to loop to find where to 
+   // because this.scores is a list we have to loop to find where to
    // update the array
    var _participant, _score;
    for (var i in this.scores) {
@@ -210,5 +229,3 @@ for (var i in options) {
 }
 
 exports.Battle = Battle;
-
-

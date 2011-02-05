@@ -1,3 +1,6 @@
+* Tests with Expresso 
+  http://visionmedia.github.com/expresso/
+
 * A nice pie for the timer in canvas
   www.phpied.com/wp-content/uploads/2008/02/canvas-pie.html
 

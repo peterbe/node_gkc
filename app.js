@@ -16,12 +16,12 @@ app.configure(function(){
    app.use(express.bodyDecoder());
    app.use(app.router);
    app.use(express.staticProvider(__dirname + '/static'));
-   
+
    app.set('views', __dirname + '/views');
    app.set('view engine', 'ejs');
    //app.set('view options', {layout: false});
    app.register('.html', require('ejs'));
-   
+
 });
 
 
@@ -34,7 +34,7 @@ app.configure('production', function(){
    app.use(express.errorHandler());
 });
 
-//app.get('/chat', function(req, res){ 
+//app.get('/chat', function(req, res){
 //   res.render('chat.html');
 //});
 
@@ -48,15 +48,15 @@ app.get('/battle', function(req, res){
 });
 
 app.listen(8888);
-  
+
 
 var Battle = require('./battle').Battle;
 var user_names = require('./user_names').user_names;
 
 
-function assert(t) {
-   if (!t) throw new Error("Assertion error");
-}
+//function assert(t) {
+//   if (!t) throw new Error("Assertion error");
+//}
 
 var socket = io.listen(app)
   , battles = []
@@ -82,7 +82,7 @@ socket.on('connection', function(client){
 
    if (battle.ready_to_play) {
       //battle.send_to_all({news:"Ready to play!"});
-      
+
       /*
       var player_names = [];
       for (var i in battle.participants) {
@@ -90,18 +90,18 @@ socket.on('connection', function(client){
       }
       battle.send_to_all({init_scoreboard: player_names});
        */
-      
-      
+
+
       //var next_question = battle.get_next_question();
       //battle.send_question(next_question);
       battle.send_next_question();
-      
+
    } else {
       battle.send_to_all({news:"Still waiting for more participants"});
    }
-   
+
    battle.send_to_everyone_else(client, { announcement: user_names.get(client.sessionId) + ' connected' });
-   
+
    client.on('message', function(message){
       L('Incoming message', message);
       if (message.answer) {
@@ -150,23 +150,20 @@ socket.on('connection', function(client){
 	    }
 	    battle.send_to_all({init_scoreboard: player_names});
 	 }
-	 
+
       } else {
 	 var msg = { message: [client.sessionId, message] };
 	 L('msg', msg);
       }
    });
-   
+
    client.on('disconnect', function(){
       var battle = current_client_battles[client.sessionId];
       battle.disconnect_participant(client);
       battle.send_to_all({update_scoreboard:[user_names.get(client.sessionId), -1]});
       //battle.send_to_all({message:client.sessionId + ' has disconnected'});
       battle.stop({message:user_names.get(client.sessionId) + ' has disconnected'});
-      //L('Disconnected', client.sessionId); 
+      //L('Disconnected', client.sessionId);
       //client.broadcast({ announcement: client.sessionId + ' disconnected' });
    });
 });
-
-
-
