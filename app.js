@@ -1,13 +1,16 @@
 /* battle play
  */
 
+
+
 var http = require('http')
   , url = require('url')
   , fs = require('fs')
   , io = require('../socket.io/')
   , express = require('../express')
   , sys = require(process.binding('natives').util ? 'util' : 'sys')
-  , L = require('./utils').L;
+  , utils = require('./utils');
+var L = utils.L;
 
 var app = express.createServer();
 
@@ -32,6 +35,13 @@ app.configure('development', function(){ //default
 app.configure('production', function(){
    // $ NODE_ENV=production node app.js
    app.use(express.errorHandler());
+});
+
+var mongoose = require('mongoose');
+var connection = mongoose.connect('mongodb://localhost/gkc', function(err) {
+   if (err) {
+      throw new Error(err.message);
+   }
 });
 
 //app.get('/chat', function(req, res){
@@ -77,8 +87,22 @@ socket.on('connection', function(client){
       battle = new Battle();
       battles.push(battle);
    }
-   battle.add_participant(client);
+   if (!client.request) {
+      // this seems to happen if you have a lingering xhr-poll
+      return;
+   }
+   var user_id = utils.parseUserCookie(client.request.headers.cookie);
+   if (!user_id) {
+      client.send({error: "Not logged in"});
+      return;
+   }
+   //L("ADDING", client, user_id);
+   battle.add_participant(client, user_id);
    current_client_battles[client.sessionId] = battle;
+   var sessionId = client.sessionId;
+   battle.fetch_user_name(user_id, function(err, name) {
+      user_names[sessionId] = name;
+   });
 
    if (battle.ready_to_play) {
       //battle.send_to_all({news:"Ready to play!"});
@@ -112,26 +136,34 @@ socket.on('connection', function(client){
 	 } else {
 	    battle.remember_has_answered(client);
 	 }
-	 if (battle.check_answer(message.answer)) {
-	    var points = 3;
-	    if (battle.has_alternatives(client)) {
-	       points = 1;
+	 battle.check_answer(message.answer, function(err, got_it_right) {
+	    if (err) {
+	       throw new Error(err);
 	    }
-	    battle.increment_score(client, points);
-	    battle.send_to_all({update_scoreboard:[user_names.get(client.sessionId), points]});
-	    client.send({answered:{right:true}});
-	    battle.send_to_everyone_else(client, {answered: {right:false}});
-	    battle.send_next_question();
-	 } else if (battle.has_everyone_answered()) {
-	    L("everyone has answered");
-	    battle.send_to_all({answered: {right:false}});
-	    battle.send_next_question();
-	 }
+	    L("got_it_right", got_it_right);
+	    if (got_it_right) {
+	       var points = 3;
+	       if (battle.has_alternatives(client)) {
+		  points = 1;
+	       }
+	       battle.increment_score(client, points);
+	       battle.send_to_all({update_scoreboard:[user_names.get(client.sessionId), points]});
+	       client.send({answered:{right:true}});
+	       battle.send_to_everyone_else(client, {answered: {right:false}});
+	       battle.send_next_question();
+	    } else if (battle.has_everyone_answered()) {
+	       L("everyone has answered");
+	       battle.send_to_all({answered: {right:false}});
+	       battle.send_next_question();
+	    }
+	 });
       } else if (message.alternatives) {
 	 var battle = current_client_battles[client.sessionId];
-	 var alternatives = battle.load_alternatives(client);
-	 battle.send_to_everyone_else(client, {message:user_names.get(client.sessionId) + ' loaded alternatives'});
-	 client.send({alternatives:alternatives});
+	 battle.load_alternatives(client, function(err, alternatives) {
+	    battle.send_to_everyone_else(client, 
+					 {message:user_names.get(client.sessionId) + ' loaded alternatives'});
+	    client.send({alternatives:alternatives});
+	 });
       } else if (message.timed_out) {
 	 var battle = current_client_battles[client.sessionId];
 	 battle.send_to_all({message:'Question timed out'});
@@ -140,6 +172,7 @@ socket.on('connection', function(client){
 	 //var next_question = battle.get_next_question();
 	 //battle.send_question(next_question);
       } else if (message.set_user_name) {
+	 throw new Error("This is obsolete and should be taken care of by the database and the user_id");
 	 user_names.set(client.sessionId, message.set_user_name);
 	 // if we have all the names, initialize the score board
 	 var battle = current_client_battles[client.sessionId];

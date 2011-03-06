@@ -196,9 +196,9 @@ socket.on('connect', function() {
       $('#answer').attr('readonly','readonly').attr('disabled','disabled');
       alternatives.load();
    });
-   if (Global.user_name) {
-      socket.send({set_user_name:Global.user_name});
-   }
+   //if (Global.user_name) {
+   //   socket.send({set_user_name:Global.user_name});
+   //}
 });
 
 socket.on('message', function(obj){

@@ -4,12 +4,6 @@ var L = require('./utils').L
 ;
 
 
-var connection = mongoose.connect('mongodb://localhost/gkc', function(err) {
-   if (err) {
-      throw new Error(err.message);
-   }
-});
-
 
 var UserSchema = new mongoose.Schema({
    username: String
@@ -39,6 +33,14 @@ QuestionSchema.method({
 	 }
 	 callback(r);
       });
+   },
+   findGenre:function(callback) {
+      Genre.findOne({_id:this.doc.genre.oid}, function(err, r) {
+	 if (err) {
+	    throw new Error(err);
+	 }
+	 callback(r);
+      });      
    }
 });
 
@@ -56,12 +58,15 @@ var QuestionsAnsweredSchema = new mongoose.Schema({
 //   console.log(count);
 //});
 
-User.find({}, function(err, docs) {
+/*User.find({}, function(err, docs) {
    docs.forEach(function(each) {
       L(each.email);
    });
 });
+ */
 
+
+/*
 Question.find(function(err, docs) {
    docs.forEach(function(each) {
       L(each.doc.author);
@@ -71,11 +76,15 @@ Question.find(function(err, docs) {
       L("\n");
    });
 });
+ */
 
 Question.count({state:'PUBLISHED'}, function(err, count) {
    L("THere are " + count + " published questions in the database");
 });
+exports.Question = Question;
+exports.User = User;
 
+/*
 exports.Database = function() {
    var _questions =
      [{id: 'q1',
@@ -152,3 +161,4 @@ exports.Database = function() {
       }
    }
 };
+    */

@@ -1,6 +1,7 @@
 var L = require('./utils').L;
 
-var Database = require('./database').Database;
+//var Database = require('./database').Database;
+var models = require('./models');
 var EditDistanceMatcher = require('./edit_distance').EditDistanceMatcher;
 
 var options = require('../socket.io/lib/socket.io/utils').options
@@ -15,6 +16,7 @@ var Battle = function(options) {
       no_questions: 5
    }, {}), options);
    this.participants = [];
+   this.user_ids = [];
    this.ready_to_play = false;
    this.sent_questions = [];
    this.stopped = false;
@@ -25,7 +27,7 @@ var Battle = function(options) {
    this.loaded_alternatives = [];
    // track who has attempted to answer the current question
    this.attempted = [];
-   this.database = Database();
+   //this.database = Database();
 
 };
 
@@ -34,6 +36,8 @@ Battle.prototype.save = function() {
 };
 
 Battle.prototype.send_to_all = function(msg) {
+   // XXX 
+   // this needs to be replaced with a forEach(this.participants, function(each) { each.send(msg) })
    for (var i=0, len=this.participants.length; i < len; i++) {
       this.participants[i].send(msg);
    }
@@ -48,10 +52,12 @@ Battle.prototype.send_to_everyone_else = function(except, msg) {
 };
 
 Battle.prototype.send_question = function(question) {
-   this.send_to_all({question:{
-           text: question.text,
+   question.findGenre(function(genre_info) {
+      this.send_to_all({question:{
+	 text: question.text,
 	   id: question.id,
-	   genre: question.genre}
+	   genre: question_info.name}
+      });
    });
 };
 
@@ -59,15 +65,23 @@ Battle.prototype.is_open = function() {
    return this.participants.length < this.options.min_no_people && !this.stopped;
 };
 
-Battle.prototype.add_participant = function(participant) {
+Battle.prototype.add_participant = function(participant, user_id) {
+   L("user_id", user_id);
    if (this.participants.length >= this.options.max_no_people) {
       throw new Error('Battle full');
    }
    this.participants.push(participant);
+   this.user_ids.push(user_id);
    this.scores.push([participant, 0]);
    if (this.participants.length >= this.options.min_no_people) {
       this.ready_to_play = true;
    }
+};
+
+Battle.prototype.fetch_user_name = function(user_id, callback) {
+   models.User.findOne({_id: user_id}, function(err, result) {
+      callback(err, result.username);
+   });
 };
 
 Battle.prototype.disconnect_participant = function(participant) {
@@ -86,45 +100,71 @@ Battle.prototype.disconnect_participant = function(participant) {
    }
 };
 
-Battle.prototype.get_next_question = function() {
-   if (!this.current_question) {
-      var x = this.database.get_next_question(this.sent_questions);
-      this.current_question = x;
+Battle.prototype.get_next_question = function(callback) {
+   // execute the callback with (error, question)
+   if (this.current_question) {
+      callback(null, this.current_question);
+   } else {
+      var self = this;
+      var user_ids = this.user_ids;
+      //L(this.participants);
+      models.Question.count({state:'PUBLISHED'}, function(err, count) {
+	 // simulate randomness by skipping by the count
+	 models.Question.find({state:'PUBLISHED'}, function(err, docs) {
+	    if (err) {
+	       callback(err, null);
+	       return;
+	    }
+	    docs.forEach(function (question) {
+	       //L("QUESTION", question);
+	       L("COMPARE", question.author, user_ids);
+	       self.current_question = question;
+	       callback(null, question);
+	    });
+	    //L("DOCS")
+	    //
+	    
+	 });
+      });
+      //this.database.get_next_question(this.user_ids, function(question) {
+      //	 self.current_question = question;
+//	 callback(null, question);
+  //    });
    }
-   return this.current_question;
 };
 
 var ANSWER_WRONG = 'wrong';
 var ANSWER_PERFECT = 'perfect';
 var ANSWER_ACCEPTABLE = 'acceptable';
 
-Battle.prototype.check_answer = function(answer) {
-   return this.check_answer_verbose(answer) != ANSWER_WRONG;
+Battle.prototype.check_answer = function(answer, callback) {
+   this.check_answer_verbose(answer, function(err, result) {
+      callback(err, result != ANSWER_WRONG);
+   });
 };
-Battle.prototype.check_answer_verbose = function(answer) {
-   //L('In check_answer current_question=', this.current_question);
-   var answer_obj = this.database.get_answer(this.current_question);
-   //L('answer_obj', answer_obj);
-   if (answer_obj.answer.toLowerCase() == answer.toLowerCase()) {
-      return ANSWER_PERFECT;
-   }
-   for (var i=0, len=answer_obj.accept.length; i < len; i++) {
-      if (answer_obj.accept[i].toLowerCase() == answer.toLowerCase()) {
-	 return ANSWER_ACCEPTABLE;
+Battle.prototype.check_answer_verbose = function(answer, callback) {
+   this..get_answer(this.current_question, function(err, answer_obj) {
+      if (answer_obj.answer.toLowerCase() == answer.toLowerCase()) {
+	 callback(null, ANSWER_PERFECT);
       }
-   }
-   if (answer_obj.spell_correct) {
-      var against = [answer_obj.answer.toLowerCase()];
       for (var i=0, len=answer_obj.accept.length; i < len; i++) {
-         against.push(answer_obj.accept[i].toLowerCase());
+	 if (answer_obj.accept[i].toLowerCase() == answer.toLowerCase()) {
+	    callback(null, ANSWER_ACCEPTABLE);
+	 }
       }
-      var edm = new EditDistanceMatcher(against);
-      if (edm.is_matched(answer.toLowerCase())) {
-         return ANSWER_ACCEPTABLE;
+      if (answer_obj.spell_correct) {
+	 var against = [answer_obj.answer.toLowerCase()];
+	 for (var i=0, len=answer_obj.accept.length; i < len; i++) {
+	    against.push(answer_obj.accept[i].toLowerCase());
+	 }
+	 var edm = new EditDistanceMatcher(against);
+	 if (edm.is_matched(answer.toLowerCase())) {
+	    callback(null, ANSWER_ACCEPTABLE);
+	 }
       }
-   }
-   // still here?!
-   return ANSWER_WRONG;
+      // still here?!
+      callback(null, ANSWER_WRONG);
+   });
 };
 
 Battle.prototype.close_current_question = function() {
@@ -153,28 +193,30 @@ Battle.prototype.has_everyone_answered = function() {
 
 Battle.prototype.send_next_question = function() {
    this.close_current_question();
-   var next_question = this.get_next_question();
-   if (next_question) {
-      this.send_question(next_question);
-   } else {
-      var winner = this.get_winner();
-      if (winner == null) {
-	 // this means it was a tie!
-	 this.send_to_all({message: 'It\'s a tie!'});
-	 next_question = this.get_next_question();
-	 this.send_question(next_question);
+   var self = this;
+   this.get_next_question(function(err, next_question) {
+      if (next_question) {
+	 L("Received next_question", next_question);
+	 self.send_question(next_question);
       } else {
-	 winner.send({winner:{you_won:true}});
-	 this.send_to_everyone_else(winner, {winner:{you_won:false}});
+	 var winner = self.get_winner();
+	 if (winner == null) {
+	    // this means it was a tie!
+	    self.send_to_all({message: 'It\'s a tie!'});
+	    next_question = self.get_next_question();
+	    self.send_question(next_question);
+	 } else {
+	    winner.send({winner:{you_won:true}});
+	    self.send_to_everyone_else(winner, {winner:{you_won:false}});
+	 }
       }
-   }
+   });
 };
 
-Battle.prototype.load_alternatives = function(participant) {
+Battle.prototype.load_alternatives = function(participant, callback) {
    /* load alternatives of the current question */
    this.loaded_alternatives.push(participant);
-   var alts = this.database.get_alternatives(this.current_question);
-   return alts;
+   this.database.get_alternatives(this.current_question, callback);
 };
 Battle.prototype.has_alternatives = function(participant) {
    for (var i in this.loaded_alternatives) {
