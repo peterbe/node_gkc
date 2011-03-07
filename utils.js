@@ -9,3 +9,9 @@ exports.parseUserCookie = function(cookie_str) {
    else
      return null;
 };
+
+exports.forEach = function(arr, callback) {
+   for(var i=0, len=arr.length; i < len; i++) {
+      callback(arr[i], i); 
+   }
+};

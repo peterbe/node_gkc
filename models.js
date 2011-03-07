@@ -25,6 +25,12 @@ var QuestionSchema = new mongoose.Schema({
 //   , author : mongoose.Schema.ObjectId // has to be commented out otherwise 
 });
 
+var GenreSchema = new mongoose.Schema({
+   name     : String
+});
+mongoose.model('Genre', GenreSchema);
+var Genre = mongoose.model('Genre', 'question_genres');
+
 QuestionSchema.method({
    findAuthor: function(callback) {
       User.findOne({_id:this.doc.author.oid}, function(err, r) {

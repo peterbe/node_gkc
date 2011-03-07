@@ -37,6 +37,7 @@ app.configure('production', function(){
    app.use(express.errorHandler());
 });
 
+require.paths.unshift('support/mongoose/lib');
 var mongoose = require('mongoose');
 var connection = mongoose.connect('mongodb://localhost/gkc', function(err) {
    if (err) {
@@ -96,7 +97,6 @@ socket.on('connection', function(client){
       client.send({error: "Not logged in"});
       return;
    }
-   //L("ADDING", client, user_id);
    battle.add_participant(client, user_id);
    current_client_battles[client.sessionId] = battle;
    var sessionId = client.sessionId;
@@ -150,10 +150,12 @@ socket.on('connection', function(client){
 	       battle.send_to_all({update_scoreboard:[user_names.get(client.sessionId), points]});
 	       client.send({answered:{right:true}});
 	       battle.send_to_everyone_else(client, {answered: {right:false}});
+	       battle.close_current_question();
 	       battle.send_next_question();
 	    } else if (battle.has_everyone_answered()) {
 	       L("everyone has answered");
 	       battle.send_to_all({answered: {right:false}});
+	       battle.close_current_question();
 	       battle.send_next_question();
 	    }
 	 });
@@ -167,10 +169,8 @@ socket.on('connection', function(client){
       } else if (message.timed_out) {
 	 var battle = current_client_battles[client.sessionId];
 	 battle.send_to_all({message:'Question timed out'});
+	 battle.close_current_question();
 	 battle.send_next_question();
-	 //battle.close_current_question();
-	 //var next_question = battle.get_next_question();
-	 //battle.send_question(next_question);
       } else if (message.set_user_name) {
 	 throw new Error("This is obsolete and should be taken care of by the database and the user_id");
 	 user_names.set(client.sessionId, message.set_user_name);

@@ -1,5 +1,8 @@
-var L = require('./utils').L;
-
+var utils = require('./utils')
+  , L = utils.L
+  , forEach = utils.forEach
+;
+   
 //var Database = require('./database').Database;
 var models = require('./models');
 var EditDistanceMatcher = require('./edit_distance').EditDistanceMatcher;
@@ -27,7 +30,6 @@ var Battle = function(options) {
    this.loaded_alternatives = [];
    // track who has attempted to answer the current question
    this.attempted = [];
-   //this.database = Database();
 
 };
 
@@ -36,27 +38,42 @@ Battle.prototype.save = function() {
 };
 
 Battle.prototype.send_to_all = function(msg) {
-   // XXX 
-   // this needs to be replaced with a forEach(this.participants, function(each) { each.send(msg) })
-   for (var i=0, len=this.participants.length; i < len; i++) {
-      this.participants[i].send(msg);
-   }
+   /*
+   forEach(this.participants, function(participant) {
+      L("typeof participant", typeof participant);
+      if (typeof participant == 'undefined') {
+	 L("BATTLE IS BROKEN!");
+      } else {
+	 participant.send(msg);
+      }
+   });
+    */
+   this.participants.forEach(function(participant) {
+      //L("typeof participant", typeof participant);
+      if (typeof participant == 'undefined') {
+	 L("BATTLE IS BROKEN!");
+      } else {
+	 participant.send(msg);
+      }
+   });
+    
 };
 
 Battle.prototype.send_to_everyone_else = function(except, msg) {
-   for (var i=0, len=this.participants.length; i < len; i++) {
-      if (except != this.participants[i]) {
-	 this.participants[i].send(msg);
+   this.participants.forEach(function(participant) {
+      if (except != participant) {
+	 participant.send(msg);
       }
-   }
+   });
 };
 
 Battle.prototype.send_question = function(question) {
+   var self = this;
    question.findGenre(function(genre_info) {
-      this.send_to_all({question:{
+      self.send_to_all({question:{
 	 text: question.text,
 	   id: question.id,
-	   genre: question_info.name}
+	   genre: genre_info.name}
       });
    });
 };
@@ -105,31 +122,39 @@ Battle.prototype.get_next_question = function(callback) {
    if (this.current_question) {
       callback(null, this.current_question);
    } else {
-      var self = this;
       var user_ids = this.user_ids;
       //L(this.participants);
-      models.Question.count({state:'PUBLISHED'}, function(err, count) {
+      //var _found_a_question = false;
+      var _search = {state:'PUBLISHED'};
+      if (this.sent_questions) {
+	 _search['_id'] = {$nin:this.sent_questions};
+      }
+      var self = this;
+      models.Question.count(_search, function(err, count) {
 	 // simulate randomness by skipping by the count
-	 models.Question.find({state:'PUBLISHED'}, function(err, docs) {
-	    if (err) {
-	       callback(err, null);
-	       return;
-	    }
-	    docs.forEach(function (question) {
-	       //L("QUESTION", question);
-	       L("COMPARE", question.author, user_ids);
-	       self.current_question = question;
-	       callback(null, question);
+	 if (!count) {
+	    callback(null, null);
+	 } else {
+	    var query = models.Question.find(_search);
+	    query.limit(1);
+	    query.skip(Math.floor(Math.random() * count));
+	    //L(query);
+	    query.execFind(function(err, docs) {
+	       docs.forEach(function (question) {
+		  if (err) {
+		     callback(err, null);
+		  } else {
+		     //L("COMPARE", question.doc.author, user_ids);
+		     //if (!_found_a_question) {
+		     self.current_question = question;
+		     callback(null, question);
+		     //_found_a_question = true;
+		     //}
+		  }
+	       });
 	    });
-	    //L("DOCS")
-	    //
-	    
-	 });
+	 }
       });
-      //this.database.get_next_question(this.user_ids, function(question) {
-      //	 self.current_question = question;
-//	 callback(null, question);
-  //    });
    }
 };
 
@@ -137,38 +162,57 @@ var ANSWER_WRONG = 'wrong';
 var ANSWER_PERFECT = 'perfect';
 var ANSWER_ACCEPTABLE = 'acceptable';
 
+Battle.prototype.get_answer = function(question, callback) {
+   models.Question.find({_id: question._id}, function(err, docs) {
+      if (err) {
+	 callback(err, null);
+      } else {
+	 docs.forEach(function(question) {
+	    callback(null, question);
+	 });
+      }
+   });
+};
+
 Battle.prototype.check_answer = function(answer, callback) {
    this.check_answer_verbose(answer, function(err, result) {
       callback(err, result != ANSWER_WRONG);
    });
 };
+
 Battle.prototype.check_answer_verbose = function(answer, callback) {
-   this..get_answer(this.current_question, function(err, answer_obj) {
+   this.get_answer(this.current_question, function(err, answer_obj) {
+      //L("ANSWER_OBJ", answer_obj);
       if (answer_obj.answer.toLowerCase() == answer.toLowerCase()) {
 	 callback(null, ANSWER_PERFECT);
-      }
-      for (var i=0, len=answer_obj.accept.length; i < len; i++) {
-	 if (answer_obj.accept[i].toLowerCase() == answer.toLowerCase()) {
-	    callback(null, ANSWER_ACCEPTABLE);
+      } else {
+	 var acceptable = false;
+	 answer_obj.accept.forEach(function(each) {
+	    if (each.toLowerCase() == answer.toLowerCase()) {
+	       callback(null, ANSWER_ACCEPTABLE);
+	       acceptable = true;
+	    }
+	 });
+	 if (!acceptable && answer_obj.spell_correct) {
+	    var against = [answer_obj.answer.toLowerCase()];
+	    answer_obj.accept.forEach(function(each) {
+	       against.push(each);
+	    });
+	    var edm = new EditDistanceMatcher(against);
+	    if (edm.is_matched(answer.toLowerCase())) {
+	       callback(null, ANSWER_ACCEPTABLE);
+	       acceptable = true;
+	    }
 	 }
+	 if (!acceptable) 
+	   callback(null, ANSWER_WRONG);
       }
-      if (answer_obj.spell_correct) {
-	 var against = [answer_obj.answer.toLowerCase()];
-	 for (var i=0, len=answer_obj.accept.length; i < len; i++) {
-	    against.push(answer_obj.accept[i].toLowerCase());
-	 }
-	 var edm = new EditDistanceMatcher(against);
-	 if (edm.is_matched(answer.toLowerCase())) {
-	    callback(null, ANSWER_ACCEPTABLE);
-	 }
-      }
-      // still here?!
-      callback(null, ANSWER_WRONG);
    });
 };
 
 Battle.prototype.close_current_question = function() {
-   this.sent_questions.push(this.current_question);
+   if (this.current_question)
+     this.sent_questions.push(this.current_question._id);
    this.current_question = null;
    this.loaded_alternatives = [];
    this.attempted = [];
@@ -192,31 +236,44 @@ Battle.prototype.has_everyone_answered = function() {
 };
 
 Battle.prototype.send_next_question = function() {
-   this.close_current_question();
-   var self = this;
-   this.get_next_question(function(err, next_question) {
-      if (next_question) {
-	 L("Received next_question", next_question);
-	 self.send_question(next_question);
-      } else {
-	 var winner = self.get_winner();
-	 if (winner == null) {
-	    // this means it was a tie!
-	    self.send_to_all({message: 'It\'s a tie!'});
-	    next_question = self.get_next_question();
+   L('# sent questions', this.sent_questions.length);
+   if (this.sent_questions.length >= this.no_questions) {
+      // battle is over!
+      this.conclude_battle();
+   } else {
+      var self = this;
+      this.get_next_question(function(err, next_question) {
+	 if (next_question) {
+	    //L("Received next_question", next_question);
+	    L("Received next_question", next_question.text);
 	    self.send_question(next_question);
 	 } else {
-	    winner.send({winner:{you_won:true}});
-	    self.send_to_everyone_else(winner, {winner:{you_won:false}});
+	    L("No question sent back");
+	    self.send_to_all({error:"No more questions"});
 	 }
-      }
-   });
+      });
+   }
+};
+
+Battle.prototype.conclude_battle = function() {
+   // wrap up the battle
+   var winner = self.get_winner();
+   if (winner == null) {
+      // this means it was a tie!
+      this.send_to_all({message: 'It\'s a tie!'});
+      this.send_to_all({winner:{draw:true}});
+   } else {
+      winner.send({winner:{you_won:true}});
+      this.send_to_everyone_else(winner, {winner:{you_won:false}});
+   }      
 };
 
 Battle.prototype.load_alternatives = function(participant, callback) {
    /* load alternatives of the current question */
    this.loaded_alternatives.push(participant);
-   this.database.get_alternatives(this.current_question, callback);
+   models.Question.findOne({_id:this.current_question._id}, function(err, question) {
+      callback(err, question.alternatives);
+   });
 };
 Battle.prototype.has_alternatives = function(participant) {
    for (var i in this.loaded_alternatives) {

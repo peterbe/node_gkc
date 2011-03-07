@@ -53,6 +53,7 @@ var question_handler = (function() {
 			      .append($('<span>', {text: question.text})));
 	 $('#alternatives').fadeTo(0, 1.0);
 	 //$('#question_id').val(data.question.id);
+	 
 	 if (_timer_clock) {
 	    clearTimeout(_timer_clock);
 	 }
@@ -75,23 +76,26 @@ var question_handler = (function() {
 	   }));
 	 socket.send({timed_out:true});
       },
-      finish: function(you_won) {
-	 clearTimeout(_timer_clock);
+      finish: function(you_won, draw) {
+	 question_handler.stop();
+	 draw = draw || false;
 	 $('#question li.current').removeClass('current').addClass('past');
-	 if (you_won) {
-	    $('#you_won').show();
+	 if (draw) {
+	    $('#you_drew').show();
 	 } else {
-	    $('#you_lost').show();
+	    if (you_won) {
+	       $('#you_won').show();
+	    } else {
+	       $('#you_lost').show();
+	    }
 	 }
-	 $('#timer').hide();
-	 $('form#respond').fadeTo(900, 0.4);
       },
       stop: function(information) {
 	 clearTimeout(_timer_clock);
 	 //$('#question li.current').removeClass('current').addClass('past');
 	 $('#timer').hide();
 	 $('form#respond').fadeTo(900, 0.4);
-	 if (information.message) {
+	 if (information && information.message) {
 	    $('#information p').text(information.message);
 	    $('#information').show();
 	 }
@@ -206,7 +210,11 @@ socket.on('message', function(obj){
    if (obj.question) {
       question_handler.load_question(obj.question);
    } else if (obj.winner) {
-      question_handler.finish(obj.winner.you_won);
+      if (obj.winner.draw) {
+	 question_handler.finish(null, true);
+      } else {
+	 question_handler.finish(obj.winner.you_won);
+      }
    } else if (obj.update_scoreboard) {
       if (-1 == obj.update_scoreboard[1]) {
 	 scoreboard.drop_score(obj.update_scoreboard[0]);
@@ -226,6 +234,7 @@ socket.on('message', function(obj){
 	 question_handler.wrong_answer();
       }
    } else if (obj.error) {
+      question_handler.stop();
       alert("Error!\n" + obj.error);
    }
 });

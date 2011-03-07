@@ -19,7 +19,11 @@
     <div id="you_lost" style="display:none">
       <h3>You lost :(</h3>
     </div>    
-    
+
+    <div id="you_drew" style="display:none">
+      <h3>You drew</h3>
+    </div>    
+
     <div id="waiting">
       <p>Waiting... waiting... waiting...</p>
     </div>
@@ -53,9 +57,10 @@
       dt.disconnected { text-decoration:line-through; color:#ccc; }
       dd.disconnected { font-size:70%; color:#ccc; }
       li.current { font-weight:bold; }
-      #you_won, #you_lost { background-color:#efefef; border:1px solid #333; position:relative; z-index:1; }
+      #you_won, #you_lost, #you_drew { background-color:#efefef; border:1px solid #333; position:relative; z-index:1; }
       #you_won h3 { color:green; }
       #you_lost h3 { color:red; }
+      #you_drew h3 { color:orange; }
       #scoreboard { position:absolute; top:50px; right:25px; width:200px; border:1px solid black; }
     </style>
     <hr>
