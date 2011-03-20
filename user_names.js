@@ -11,6 +11,7 @@ exports.user_names = (function() {
       },
       has: function(id) {
 	 return _names[id] !== undefined;
-      }
+      },
+      _introspect: function() { return _names }
    }
 })();

@@ -1,5 +1,6 @@
 var L = function() {
-   console.log.apply(console, arguments);
+   if (window.console && window.console.log)
+     console.log.apply(console, arguments);
 };
 
 function message(obj){
@@ -200,9 +201,6 @@ socket.on('connect', function() {
       $('#answer').attr('readonly','readonly').attr('disabled','disabled');
       alternatives.load();
    });
-   //if (Global.user_name) {
-   //   socket.send({set_user_name:Global.user_name});
-   //}
 });
 
 socket.on('message', function(obj){
@@ -219,11 +217,13 @@ socket.on('message', function(obj){
       if (-1 == obj.update_scoreboard[1]) {
 	 scoreboard.drop_score(obj.update_scoreboard[0]);
       } else {
+	 L("scoreboard.incr_score", obj.update_scoreboard[0], obj.update_scoreboard[1]);
 	 scoreboard.incr_score(obj.update_scoreboard[0], obj.update_scoreboard[1]);
       }
    } else if (obj.alternatives) {
       alternatives.show(obj.alternatives);
    } else if (obj.init_scoreboard) {
+      L("scoreboard.init_players", obj.init_scoreboard);
       scoreboard.init_players(obj.init_scoreboard);
    } else if (obj.stop) {
       question_handler.stop(obj.stop);

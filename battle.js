@@ -30,7 +30,8 @@ var Battle = function(options) {
    this.loaded_alternatives = [];
    // track who has attempted to answer the current question
    this.attempted = [];
-
+   this.battle;
+   
 };
 
 Battle.prototype.save = function() {
@@ -38,16 +39,6 @@ Battle.prototype.save = function() {
 };
 
 Battle.prototype.send_to_all = function(msg) {
-   /*
-   forEach(this.participants, function(participant) {
-      L("typeof participant", typeof participant);
-      if (typeof participant == 'undefined') {
-	 L("BATTLE IS BROKEN!");
-      } else {
-	 participant.send(msg);
-      }
-   });
-    */
    this.participants.forEach(function(participant) {
       //L("typeof participant", typeof participant);
       if (typeof participant == 'undefined') {
@@ -82,17 +73,21 @@ Battle.prototype.is_open = function() {
    return this.participants.length < this.options.min_no_people && !this.stopped;
 };
 
-Battle.prototype.add_participant = function(participant, user_id) {
+Battle.prototype.add_participant = function(participant, user_id, callback) {
    L("user_id", user_id);
    if (this.participants.length >= this.options.max_no_people) {
       throw new Error('Battle full');
    }
-   this.participants.push(participant);
-   this.user_ids.push(user_id);
-   this.scores.push([participant, 0]);
-   if (this.participants.length >= this.options.min_no_people) {
-      this.ready_to_play = true;
-   }
+   var self = this;
+   this.setup_battle(user_id, function() {
+      self.participants.push(participant);
+      self.user_ids.push(user_id);
+      self.scores.push([participant, 0]);
+      if (self.participants.length >= self.options.min_no_people) {
+	 self.ready_to_play = true;
+      }
+      callback();
+   });
 };
 
 Battle.prototype.fetch_user_name = function(user_id, callback) {
@@ -237,7 +232,8 @@ Battle.prototype.has_everyone_answered = function() {
 
 Battle.prototype.send_next_question = function() {
    L('# sent questions', this.sent_questions.length);
-   if (this.sent_questions.length >= this.no_questions) {
+   L('this.no_questions', this.options);
+   if (this.sent_questions.length >= this.options.no_questions) {
       // battle is over!
       this.conclude_battle();
    } else {
@@ -257,14 +253,22 @@ Battle.prototype.send_next_question = function() {
 
 Battle.prototype.conclude_battle = function() {
    // wrap up the battle
-   var winner = self.get_winner();
+   var winner = this.get_winner();
+   L('winner', winner);
    if (winner == null) {
-      // this means it was a tie!
-      this.send_to_all({message: 'It\'s a tie!'});
-      this.send_to_all({winner:{draw:true}});
+      this.battle.draw = true;
+      this.battle.save(function(err) {
+	 // this means it was a tie!
+	 this.send_to_all({message: 'It\'s a tie!'});
+	 this.send_to_all({winner:{draw:true}});
+      });
    } else {
-      winner.send({winner:{you_won:true}});
-      this.send_to_everyone_else(winner, {winner:{you_won:false}});
+      this.battle.winner = winner;
+      var self = this;
+      this.battle.save(function(err) {
+	 winner.send({winner:{you_won:true}});
+	 self.send_to_everyone_else(winner, {winner:{you_won:false}});
+      });
    }      
 };
 
@@ -322,6 +326,24 @@ Battle.prototype.stop = function(information) {
    this.stopped = true;
    this.send_to_all({stop: information});
 }
+
+
+Battle.prototype.setup_battle = function(user_id, callback) {
+   if (!this.battle) {
+      this.battle = new models.Battle();
+      this.battle.no_questions = this.options.no_questions;
+   }
+   L("this.users", this.users);
+   if (typeof(this.users) == 'undefined') {
+      this.users = [user_id];
+   } else {
+      this.users.push(user_id);
+   }
+   this.battle.no_people++;
+   this.battle.save(function(err) {
+      callback(err);
+   });
+};
 
 for (var i in options) {
    Battle.prototype[i] = options[i];

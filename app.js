@@ -72,7 +72,6 @@ var user_names = require('./user_names').user_names;
 var socket = io.listen(app)
   , battles = []
   , current_client_battles = {}
-  , sessionid_names = {}
 ;
 
 socket.on('connection', function(client){
@@ -97,34 +96,34 @@ socket.on('connection', function(client){
       client.send({error: "Not logged in"});
       return;
    }
-   battle.add_participant(client, user_id);
-   current_client_battles[client.sessionId] = battle;
-   var sessionId = client.sessionId;
-   battle.fetch_user_name(user_id, function(err, name) {
-      user_names[sessionId] = name;
+   battle.add_participant(client, user_id, function() {
+      current_client_battles[client.sessionId] = battle;
+   
+      battle.fetch_user_name(user_id, function(err, name) {
+	 L('err', err);
+	 L('name', name);
+	 user_names.set(client.sessionId, name);
+	 L('user_names', user_names._introspect());
+	 
+	 battle.send_to_everyone_else(client, { announcement: user_names.get(client.sessionId) + ' connected' });
+	 
+	 if (battle.ready_to_play) {
+	    var player_names = [];
+	    battle.participants.forEach(function(participant) {
+	       player_names.push(user_names.get(participant.sessionId));
+	    });
+	    //for (var i in battle.participants) {
+	    // player_names.push(user_names.get(battle.participants[i].sessionId));
+	    //}
+	    L('player_names', player_names);
+	    battle.send_to_all({init_scoreboard: player_names});
+	    battle.send_next_question();
+	 } else {
+	    battle.send_to_all({news:"Still waiting for more participants"});
+	 }
+      });
    });
-
-   if (battle.ready_to_play) {
-      //battle.send_to_all({news:"Ready to play!"});
-
-      /*
-      var player_names = [];
-      for (var i in battle.participants) {
-	 player_names.push(user_names.get(battle.participants[i].sessionId));
-      }
-      battle.send_to_all({init_scoreboard: player_names});
-       */
-
-
-      //var next_question = battle.get_next_question();
-      //battle.send_question(next_question);
-      battle.send_next_question();
-
-   } else {
-      battle.send_to_all({news:"Still waiting for more participants"});
-   }
-
-   battle.send_to_everyone_else(client, { announcement: user_names.get(client.sessionId) + ' connected' });
+			  
 
    client.on('message', function(message){
       L('Incoming message', message);
@@ -171,7 +170,9 @@ socket.on('connection', function(client){
 	 battle.send_to_all({message:'Question timed out'});
 	 battle.close_current_question();
 	 battle.send_next_question();
+	 
       } else if (message.set_user_name) {
+	 /* OUT
 	 throw new Error("This is obsolete and should be taken care of by the database and the user_id");
 	 user_names.set(client.sessionId, message.set_user_name);
 	 // if we have all the names, initialize the score board
@@ -183,7 +184,7 @@ socket.on('connection', function(client){
 	    }
 	    battle.send_to_all({init_scoreboard: player_names});
 	 }
-
+	 */
       } else {
 	 var msg = { message: [client.sessionId, message] };
 	 L('msg', msg);
@@ -194,9 +195,7 @@ socket.on('connection', function(client){
       var battle = current_client_battles[client.sessionId];
       battle.disconnect_participant(client);
       battle.send_to_all({update_scoreboard:[user_names.get(client.sessionId), -1]});
-      //battle.send_to_all({message:client.sessionId + ' has disconnected'});
       battle.stop({message:user_names.get(client.sessionId) + ' has disconnected'});
-      //L('Disconnected', client.sessionId);
-      //client.broadcast({ announcement: client.sessionId + ' disconnected' });
+      delete user_names[client.sessionId];
    });
 });

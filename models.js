@@ -60,6 +60,30 @@ var QuestionsAnsweredSchema = new mongoose.Schema({
    , answer:     String
 });
 
+var BattleSchema = new mongoose.Schema({
+   users: [mongoose.Schema.ObjectId]
+   , started: { type: Date, default: Date.now }
+   , finished: Date
+   , no_players: { type: Number, default: 0 }
+   , no_questions: Number
+   , draw: { type: Boolean, default: false }
+   , winner: mongoose.Schema.ObjectId
+});
+mongoose.model('Battle', BattleSchema);
+var Battle = mongoose.model('Battle', 'battles');
+
+var BattledQuestionsSchema = new mongoose.Schema({
+   battle: mongoose.Schema.ObjectId
+   , question: { type: mongoose.Schema.ObjectId, index: true }
+   , user: { type: mongoose.Schema.ObjectId, index: true }
+   , loaded_alternatives: { type: Boolean, default: false }
+   , right: { type: Boolean, default: false }
+   , timed_out: { type: Boolean, default: false }
+   , date: { type: Date, default: Date.now }
+});
+mongoose.model('BattledQuestion', BattledQuestionsSchema);
+var BattledQuestion = mongoose.model('BattledQuestion', 'battled_questions');
+
 //User.count({}, function(err, count) {
 //   console.log(count);
 //});
@@ -89,10 +113,11 @@ Question.count({state:'PUBLISHED'}, function(err, count) {
 });
 exports.Question = Question;
 exports.User = User;
+exports.Battle = Battle;
+exports.BattledQuestion = BattledQuestion;
+
 
 /*
-exports.Database = function() {
-   var _questions =
      [{id: 'q1',
 	text: 'What year was Rolling Stones formed?',
 	answer:'1962',
@@ -131,40 +156,4 @@ exports.Database = function() {
 	   genre: 'Science', spell_correct:false
       }
      ];
-
-   return {
-      get_next_question: function(user_ids, callback) {
-	 for (var i in _questions) {
-	    if (!this._inArray(_questions[i], had)) {
-	       callback(_questions[i]);
-	       break;
-	    }
-	 }
-      },
-      get_answer: function(question) {
-	 for (var i in _questions) {
-	    if (_questions[i] == question) {
-	       return {answer: _questions[i].answer,
-		    accept: _questions[i].accept,
-                    spell_correct: _questions[i].spell_correct};
-	    }
-	 }
-      },
-      get_alternatives: function(question, callback) {
-	 for (var i in _questions) {
-	    if (_questions[i] == question) {
-	       callback(null, _questions[i].alternatives);
-	    }
-	 }
-      },
-      _inArray: function(element, array) {
-	 for (var i in array) {
-	    if (array[i] == element) {
-	       return true;
-	    }
-	 }
-	 return false;
-      }
-   }
-};
-    */
+*/
