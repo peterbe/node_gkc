@@ -3,13 +3,17 @@ var utils = require('./utils')
   , forEach = utils.forEach
 ;
    
-//var Database = require('./database').Database;
 var models = require('./models');
 var EditDistanceMatcher = require('./edit_distance').EditDistanceMatcher;
 
+/*
 var options = require('../socket.io/lib/socket.io/utils').options
     , merge = require('../socket.io/lib/socket.io/utils').merge;
-
+*/
+// This is STUPID! There must be a better way to access socket.io's
+// utils without knowing the full path.
+var options = require('/usr/local/lib/node/socket.io/lib/socket.io/utils').options
+    , merge = require('/usr/local/lib/node/socket.io/lib/socket.io/utils').merge;
 
 var Battle = function(options) {
    //this.id = id;
