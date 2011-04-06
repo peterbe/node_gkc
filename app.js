@@ -16,9 +16,9 @@ var app = express.createServer();
 
 app.configure(function(){
    app.use(express.methodOverride());
-   app.use(express.bodyDecoder());
+   app.use(express.bodyParser());
    app.use(app.router);
-   app.use(express.staticProvider(__dirname + '/static'));
+   app.use(express.static(__dirname + '/static'));
 
    app.set('views', __dirname + '/views');
    app.set('view engine', 'ejs');
