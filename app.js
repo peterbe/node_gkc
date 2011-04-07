@@ -47,6 +47,11 @@ var connection = mongoose.connect('mongodb://localhost/gkc', function(err) {
    }
 });
 
+app.get('/', function(req, res){
+   res.send("All is working fine");
+   //res.render('battle.html', {global_config:JSON.stringify(global_config)});
+});
+
 app.get('/play', function(req, res){
    var global_config = {
       'HIGHSCORE_URL':'http://kwissle.com/highscore/',
