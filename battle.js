@@ -44,7 +44,6 @@ Battle.prototype.save = function() {
 
 Battle.prototype.send_to_all = function(msg) {
    this.participants.forEach(function(participant) {
-      //L("typeof participant", typeof participant);
       if (typeof participant == 'undefined') {
 	 L("BATTLE IS BROKEN!");
       } else {
@@ -78,7 +77,6 @@ Battle.prototype.is_open = function() {
 };
 
 Battle.prototype.add_participant = function(participant, user_id, callback) {
-   L("user_id", user_id);
    if (this.participants.length >= this.options.max_no_people) {
       throw new Error('Battle full');
    }
@@ -122,7 +120,6 @@ Battle.prototype.get_next_question = function(callback) {
       callback(null, this.current_question);
    } else {
       var user_ids = this.user_ids;
-      //L(this.participants);
       //var _found_a_question = false;
       var _search = {state:'PUBLISHED'};
       if (this.sent_questions) {
@@ -137,7 +134,6 @@ Battle.prototype.get_next_question = function(callback) {
 	    var query = models.Question.find(_search);
 	    query.limit(1);
 	    query.skip(Math.floor(Math.random() * count));
-	    //L(query);
 	    query.execFind(function(err, docs) {
 	       docs.forEach(function (question) {
 		  if (err) {
@@ -181,7 +177,6 @@ Battle.prototype.check_answer = function(answer, callback) {
 
 Battle.prototype.check_answer_verbose = function(answer, callback) {
    this.get_answer(this.current_question, function(err, answer_obj) {
-      //L("ANSWER_OBJ", answer_obj);
       if (answer_obj.answer.toLowerCase() == answer.toLowerCase()) {
 	 callback(null, ANSWER_PERFECT);
       } else {
@@ -235,8 +230,6 @@ Battle.prototype.has_everyone_answered = function() {
 };
 
 Battle.prototype.send_next_question = function() {
-   L('# sent questions', this.sent_questions.length);
-   L('this.no_questions', this.options);
    if (this.sent_questions.length >= this.options.no_questions) {
       // battle is over!
       this.conclude_battle();
@@ -244,11 +237,8 @@ Battle.prototype.send_next_question = function() {
       var self = this;
       this.get_next_question(function(err, next_question) {
 	 if (next_question) {
-	    //L("Received next_question", next_question);
-	    L("Received next_question", next_question.text);
 	    self.send_question(next_question);
 	 } else {
-	    L("No question sent back");
 	    self.send_to_all({error:"No more questions"});
 	 }
       });
@@ -258,7 +248,6 @@ Battle.prototype.send_next_question = function() {
 Battle.prototype.conclude_battle = function() {
    // wrap up the battle
    var winner = this.get_winner();
-   L('winner', winner);
    if (winner == null) {
       this.battle.draw = true;
       this.battle.save(function(err) {
@@ -280,6 +269,14 @@ Battle.prototype.load_alternatives = function(participant, callback) {
    /* load alternatives of the current question */
    this.loaded_alternatives.push(participant);
    models.Question.findOne({_id:this.current_question._id}, function(err, question) {
+      // XXX here we need to do something like
+      // BattledQuestion.findOne({'question.$id':this.current_question._id,
+      //                          'user.$id': participant._id???,
+      //   function(err, battled_question) {
+      //      battled_question.loaded_alternatives=true;
+      //      battled_question.save(function(err) {
+      //         callback(err, question.alternatives);
+      //      }  
       callback(err, question.alternatives);
    });
 };
@@ -337,7 +334,6 @@ Battle.prototype.setup_battle = function(user_id, callback) {
       this.battle = new models.Battle();
       this.battle.no_questions = this.options.no_questions;
    }
-   L("this.users", this.users);
    if (typeof(this.users) == 'undefined') {
       this.users = [user_id];
    } else {

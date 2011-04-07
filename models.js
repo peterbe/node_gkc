@@ -84,17 +84,6 @@ var BattledQuestionsSchema = new mongoose.Schema({
 mongoose.model('BattledQuestion', BattledQuestionsSchema);
 var BattledQuestion = mongoose.model('BattledQuestion', 'battled_questions');
 
-//User.count({}, function(err, count) {
-//   console.log(count);
-//});
-
-/*User.find({}, function(err, docs) {
-   docs.forEach(function(each) {
-      L(each.email);
-   });
-});
- */
-
 
 /*
 Question.find(function(err, docs) {
@@ -109,7 +98,7 @@ Question.find(function(err, docs) {
  */
 
 Question.count({state:'PUBLISHED'}, function(err, count) {
-   L("THere are " + count + " published questions in the database");
+   L("There are " + count + " published questions in the database");
 });
 exports.Question = Question;
 exports.User = User;

@@ -68,7 +68,6 @@ Question.find(function(err, docs) {
       L(each.findAuthor(function(user) {
 	 L("user", user.first_name);
       }));
-      L("\n");
    });
 });
 
@@ -76,6 +75,7 @@ Question.count({state:'PUBLISHED'}, function(err, count) {
    L("THere are " + count + " published questions in the database");
 });
 
+/*
 exports.Database = function() {
    var _questions =
      [{id: 'q1',
@@ -152,3 +152,4 @@ exports.Database = function() {
       }
    }
 };
+*/

@@ -9,8 +9,10 @@ var http = require('http')
   , io = require('socket.io')
   , express = require('express')
   , sys = require(process.binding('natives').util ? 'util' : 'sys')
-  , utils = require('./utils');
+  , utils = require('./utils')
+  , models = require('./models');
 var L = utils.L;
+
 
 var app = express.createServer();
 
@@ -45,17 +47,27 @@ var connection = mongoose.connect('mongodb://localhost/gkc', function(err) {
    }
 });
 
-//app.get('/chat', function(req, res){
-//   res.render('chat.html');
-//});
-
-app.get('/battle', function(req, res){
-   var global_config = {};
-   if (req.query.name) {
-      global_config['user_name'] = req.query.name;
-   }
+app.get('/play', function(req, res){
+   var global_config = {
+      'HIGHSCORE_URL':'http://kwissle.com/highscore/',
+      'HOMEPAGE_URL':'http://kwissle.com/',
+   };
    res.render('battle.html', {global_config:JSON.stringify(global_config)});
-   //res.render('battle.html');
+});
+
+app.get('/start', function(req, res){
+   if (req.query.u) {
+      models.User.findOne({_id: req.query.u}, function(err, result) {
+	 if (err) {
+	    res.render('not_logged_in.html', {error:"Not found in database"});
+	 } else {
+	    res.cookie('user_id', req.query.u);
+	    res.redirect('/play');
+	 }
+      });
+   } else {
+      res.render('not_logged_in.html', {error:"No cookie"})
+   }
 });
 
 app.listen(8888);
@@ -91,7 +103,10 @@ socket.on('connection', function(client){
       // this seems to happen if you have a lingering xhr-poll
       return;
    }
-   var user_id = utils.parseUserCookie(client.request.headers.cookie);
+   
+   var user_id;
+   if (client.request.headers.cookie)
+     user_id = utils.parseUserCookie(client.request.headers.cookie);
    if (!user_id) {
       client.send({error: "Not logged in"});
       return;
@@ -100,10 +115,7 @@ socket.on('connection', function(client){
       current_client_battles[client.sessionId] = battle;
    
       battle.fetch_user_name(user_id, function(err, name) {
-	 L('err', err);
-	 L('name', name);
 	 user_names.set(client.sessionId, name);
-	 L('user_names', user_names._introspect());
 	 
 	 battle.send_to_everyone_else(client, { announcement: user_names.get(client.sessionId) + ' connected' });
 	 

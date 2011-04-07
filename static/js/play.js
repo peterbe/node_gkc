@@ -82,12 +82,24 @@ var question_handler = (function() {
 	 draw = draw || false;
 	 $('#question li.current').removeClass('current').addClass('past');
 	 if (draw) {
-	    $('#you_drew').show();
+	    $('#you_drew').show()
+	      .append($('<a>', {
+		 href:Global.HOMEPAGE_URL,
+		   text:"Go back to the home page"}));
+
 	 } else {
 	    if (you_won) {
-	       $('#you_won').show();
+	       $('#you_won').show()
+		 .append($('<a>', {
+		 href:Global.HIGHSCORE_URL,
+		      text:"Check out where you are now on the Highscore list"}));
+;
 	    } else {
-	       $('#you_lost').show();
+	       $('#you_lost').show()
+		 .append($('<a>', {
+		    href:Global.HOMEPAGE_URL,
+		      text:"Go back to the home page"}));
+		 
 	    }
 	 }
       },
