@@ -176,6 +176,9 @@ Battle.prototype.check_answer = function(answer, callback) {
 };
 
 Battle.prototype.check_answer_verbose = function(answer, callback) {
+   if (!this.current_question) {
+      throw "No current_question";
+   }
    this.get_answer(this.current_question, function(err, answer_obj) {
       if (answer_obj.answer.toLowerCase() == answer.toLowerCase()) {
 	 callback(null, ANSWER_PERFECT);
@@ -204,9 +207,10 @@ Battle.prototype.check_answer_verbose = function(answer, callback) {
    });
 };
 
-Battle.prototype.close_current_question = function() {
-   if (this.current_question)
-     this.sent_questions.push(this.current_question._id);
+Battle.prototype.close_current_question = function(callback) {
+   if (this.current_question) {
+      this.sent_questions.push(this.current_question._id);
+   }
    this.current_question = null;
    this.loaded_alternatives = [];
    this.attempted = [];

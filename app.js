@@ -137,10 +137,6 @@ socket.on('connection', function(client){
 	    battle.participants.forEach(function(participant) {
 	       player_names.push(user_names.get(participant.sessionId));
 	    });
-	    //for (var i in battle.participants) {
-	    // player_names.push(user_names.get(battle.participants[i].sessionId));
-	    //}
-	    L('player_names', player_names);
 	    battle.send_to_all({init_scoreboard: player_names});
 	    battle.send_next_question();
 	 } else {
@@ -153,6 +149,24 @@ socket.on('connection', function(client){
    client.on('message', function(message){
       L('Incoming message', message);
       if (message.answer) {
+	 // XXX Possible concurrency problem
+	 // This can probably be easily solved with a simple "lock file" pattern.
+	 // If two people send in their answers 1 millisecond after each other
+	 // the "slow" battle.check_answer() might take 3 milliseconds to respond
+	 // and if the first one got it right, he will get the score and it will
+	 // send out a new question so when the second person reaches the 
+	 // battle.check_answer() the curren_question will be nullified potentially
+	 // and the whole check_answer() will barf. 
+	 // If the first person to reach battle.check_answer() gets it wrong, the
+	 // answer of the second person should now be attempted. 
+	 // So, before calling battle.check_answer() we'll need something like
+	 // battle.queue_answer(client, message.answer)
+	 // and at the end of the check_answer() callback (if the answer was wrong), 
+	 // pop the next answer off the queue and check that too until the queue is
+	 // empty to someone has answered correctly. 
+	 // Also, if the first person is right and the second person's answer is 
+	 // in the queue, we'll need to send to everyone in the queue that they 
+	 // were wrong. 
 	 var battle = current_client_battles[client.sessionId];
 	 battle.send_to_everyone_else(client, {message: user_names.get(client.sessionId) + ' answered something'});
 	 if (battle.has_answered(client)) {
@@ -164,7 +178,6 @@ socket.on('connection', function(client){
 	    if (err) {
 	       throw new Error(err);
 	    }
-	    L("got_it_right", got_it_right);
 	    if (got_it_right) {
 	       var points = 3;
 	       if (battle.has_alternatives(client)) {
@@ -174,13 +187,15 @@ socket.on('connection', function(client){
 	       battle.send_to_all({update_scoreboard:[user_names.get(client.sessionId), points]});
 	       client.send({answered:{right:true}});
 	       battle.send_to_everyone_else(client, {answered: {right:false}});
-	       battle.close_current_question();
-	       battle.send_next_question();
+	       battle.close_current_question(function() {
+		  battle.send_next_question();
+	       });
 	    } else if (battle.has_everyone_answered()) {
 	       L("everyone has answered");
 	       battle.send_to_all({answered: {right:false}});
-	       battle.close_current_question();
-	       battle.send_next_question();
+	       battle.close_current_question(function() {
+		  battle.send_next_question();
+	       });
 	    }
 	 });
       } else if (message.alternatives) {
@@ -193,9 +208,9 @@ socket.on('connection', function(client){
       } else if (message.timed_out) {
 	 var battle = current_client_battles[client.sessionId];
 	 battle.send_to_all({message:'Question timed out'});
-	 battle.close_current_question();
-	 battle.send_next_question();
-	 
+	 battle.close_current_question(function() {
+	    battle.send_next_question();
+	 });
       } else if (message.set_user_name) {
 	 /* OUT
 	 throw new Error("This is obsolete and should be taken care of by the database and the user_id");

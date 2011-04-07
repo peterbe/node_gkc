@@ -1,3 +1,10 @@
+1) delay between the questions
+2) a screen before the first question that says "Starting in 5, 4, 3, 2, 1: GO!"
+3) more immediate feedback about closed questions (too late, you got it or he got it)
+4) fixing the bugs when it concludes the battle
+5) fixing the draw bug by adding an extra question into overtime.
+
+
 * Tests with Expresso 
   http://visionmedia.github.com/expresso/
 
