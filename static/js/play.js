@@ -197,7 +197,6 @@ function __log_message(msg) {
    document.getElementById('log').scrollTop = 1000000;
 }
 
-//var socket = new io.Socket(null, {port: 8888, rememberTransport: false});
 var socket = new io.Socket(null, {port: 8888, rememberTransport: false});
 socket.connect();
 
@@ -220,6 +219,7 @@ socket.on('message', function(obj){
    __log_message(obj);
    if (obj.question) {
       question_handler.load_question(obj.question);
+      $('#your_name:visible').hide();
    } else if (obj.winner) {
       if (obj.winner.draw) {
 	 question_handler.finish(null, true);
@@ -230,13 +230,11 @@ socket.on('message', function(obj){
       if (-1 == obj.update_scoreboard[1]) {
 	 scoreboard.drop_score(obj.update_scoreboard[0]);
       } else {
-	 L("scoreboard.incr_score", obj.update_scoreboard[0], obj.update_scoreboard[1]);
 	 scoreboard.incr_score(obj.update_scoreboard[0], obj.update_scoreboard[1]);
       }
    } else if (obj.alternatives) {
       alternatives.show(obj.alternatives);
    } else if (obj.init_scoreboard) {
-      L("scoreboard.init_players", obj.init_scoreboard);
       scoreboard.init_players(obj.init_scoreboard);
    } else if (obj.stop) {
       question_handler.stop(obj.stop);
@@ -249,6 +247,10 @@ socket.on('message', function(obj){
    } else if (obj.error) {
       question_handler.stop();
       alert("Error!\n" + obj.error);
+   } else if (obj.your_name) {
+      // this is mainly for checking that all is working fine
+      $('#your_name strong').text(obj.your_name);
+      $('#your_name:hidden').show(500);
    }
 });
 
