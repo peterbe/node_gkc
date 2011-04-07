@@ -198,7 +198,7 @@ function __log_message(msg) {
 }
 
 //var socket = new io.Socket(null, {port: 8888, rememberTransport: false});
-var socket = new io.Socket(null, {port: 80, rememberTransport: false});
+var socket = new io.Socket(null, {port: 8888, rememberTransport: false});
 socket.connect();
 
 socket.on('connect', function() {

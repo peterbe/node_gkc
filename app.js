@@ -92,19 +92,9 @@ var socket = io.listen(app)
 ;
 
 socket.on('connection', function(client){
-
-   var battle;
-   for (var i in battles) {
-      if (battles[i].is_open()) {
-	 battle = battles[i];
-	 break;
-      }
-   }
-   if (!battle) {
-      L("Creating new Battle instance");
-      battle = new Battle();
-      battles.push(battle);
-   }
+   L("Client connected");
+   client.send({debug:"Connected!"});
+   
    if (!client.request) {
       // this seems to happen if you have a lingering xhr-poll
       L("No request object on the client. Exiting");
@@ -119,6 +109,20 @@ socket.on('connection', function(client){
       client.send({error: "Not logged in"});
       return;
    }
+   
+   var battle;
+   for (var i in battles) {
+      if (battles[i].is_open()) {
+	 battle = battles[i];
+	 break;
+      }
+   }
+   if (!battle) {
+      L("Creating new Battle instance");
+      battle = new Battle();
+      battles.push(battle);
+   }
+   
    battle.add_participant(client, user_id, function() {
       current_client_battles[client.sessionId] = battle;
 
