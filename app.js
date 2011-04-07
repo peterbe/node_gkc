@@ -101,11 +101,13 @@ socket.on('connection', function(client){
       }
    }
    if (!battle) {
+      L("Creating new Battle instance");
       battle = new Battle();
       battles.push(battle);
    }
    if (!client.request) {
       // this seems to happen if you have a lingering xhr-poll
+      L("No request object on the client. Exiting");
       return;
    }
    
@@ -113,13 +115,15 @@ socket.on('connection', function(client){
    if (client.request.headers.cookie)
      user_id = utils.parseUserCookie(client.request.headers.cookie);
    if (!user_id) {
+      L("Not logged in");
       client.send({error: "Not logged in"});
       return;
    }
    battle.add_participant(client, user_id, function() {
       current_client_battles[client.sessionId] = battle;
-   
+
       battle.fetch_user_name(user_id, function(err, name) {
+	 client.send({your_name:name});
 	 user_names.set(client.sessionId, name);
 	 
 	 battle.send_to_everyone_else(client, { announcement: user_names.get(client.sessionId) + ' connected' });
