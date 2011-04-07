@@ -197,7 +197,8 @@ function __log_message(msg) {
    document.getElementById('log').scrollTop = 1000000;
 }
 
-var socket = new io.Socket(null, {port: 8888, rememberTransport: false});
+//var socket = new io.Socket(null, {port: 8888, rememberTransport: false});
+var socket = new io.Socket(null, {port: 80, rememberTransport: false});
 socket.connect();
 
 socket.on('connect', function() {
