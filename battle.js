@@ -61,14 +61,15 @@ Battle.prototype.send_to_everyone_else = function(except, msg) {
    });
 };
 
-Battle.prototype.send_question = function(question) {
+Battle.prototype.send_question = function(question, callback) {
    var self = this;
-   question.findGenre(function(genre_info) {
+   question.findGenre(function(err, genre_info) {
       self.send_to_all({question:{
 	 text: question.text,
 	   id: question.id,
-	   genre: genre_info.name}
+	   genre: genre_info.doc.name}
       });
+      callback();
    });
 };
 
@@ -190,6 +191,7 @@ Battle.prototype.check_answer_verbose = function(answer, callback) {
 	       acceptable = true;
 	    }
 	 });
+	 //L("answer_obj", answer_obj);
 	 if (!acceptable && answer_obj.spell_correct) {
 	    var against = [answer_obj.answer.toLowerCase()];
 	    answer_obj.accept.forEach(function(each) {
@@ -214,6 +216,7 @@ Battle.prototype.close_current_question = function(callback) {
    this.current_question = null;
    this.loaded_alternatives = [];
    this.attempted = [];
+   callback();
 };
 
 Battle.prototype.remember_has_answered = function(participant) {
@@ -233,31 +236,39 @@ Battle.prototype.has_everyone_answered = function() {
    return this.attempted.length == this.participants.length;
 };
 
-Battle.prototype.send_next_question = function() {
+Battle.prototype.send_next_question = function(callback) {
    if (this.sent_questions.length >= this.options.no_questions) {
       // battle is over!
-      this.conclude_battle();
+      this.conclude_battle(function(err) {
+	 callback(err);
+      });
    } else {
       var self = this;
       this.get_next_question(function(err, next_question) {
 	 if (next_question) {
-	    self.send_question(next_question);
+	    self.send_question(next_question, function() {
+	       callback();
+	    });
 	 } else {
 	    self.send_to_all({error:"No more questions"});
+	    callback();
 	 }
+	 
       });
    }
 };
 
-Battle.prototype.conclude_battle = function() {
+Battle.prototype.conclude_battle = function(callback) {
    // wrap up the battle
    var winner = this.get_winner();
    if (winner == null) {
       this.battle.draw = true;
+      var self = this;
       this.battle.save(function(err) {
 	 // this means it was a tie!
-	 this.send_to_all({message: 'It\'s a tie!'});
-	 this.send_to_all({winner:{draw:true}});
+	 self.send_to_all({message: 'It\'s a tie!'});
+	 self.send_to_all({winner:{draw:true}});
+	 callback(err);
       });
    } else {
       this.battle.winner = winner;
@@ -265,6 +276,7 @@ Battle.prototype.conclude_battle = function() {
       this.battle.save(function(err) {
 	 winner.send({winner:{you_won:true}});
 	 self.send_to_everyone_else(winner, {winner:{you_won:false}});
+	 callback(err);
       });
    }      
 };

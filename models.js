@@ -22,7 +22,9 @@ var QuestionSchema = new mongoose.Schema({
    , spell_correct      : Boolean
    , state      : String
    , publish_date      : Date
-//   , author : mongoose.Schema.ObjectId // has to be commented out otherwise 
+   // faked DBRefs
+   , genre : {}
+   , author : {}
 });
 
 var GenreSchema = new mongoose.Schema({
@@ -34,18 +36,12 @@ var Genre = mongoose.model('Genre', 'question_genres');
 QuestionSchema.method({
    findAuthor: function(callback) {
       User.findOne({_id:this.doc.author.oid}, function(err, r) {
-	 if (err) {
-	    throw new Error(err);
-	 }
-	 callback(r);
+	 callback(err, r);
       });
    },
    findGenre:function(callback) {
       Genre.findOne({_id:this.doc.genre.oid}, function(err, r) {
-	 if (err) {
-	    throw new Error(err);
-	 }
-	 callback(r);
+	 callback(err, r);
       });      
    }
 });
@@ -53,12 +49,14 @@ QuestionSchema.method({
 mongoose.model('Question', QuestionSchema);
 var Question = mongoose.model('Question', 'questions');
 
-var QuestionsAnsweredSchema = new mongoose.Schema({
+var QuestionAnsweredSchema = new mongoose.Schema({
    question_id:     mongoose.Schema.ObjectId
    , user_id:       mongoose.Schema.ObjectId
-   , right:      Boolean
-   , answer:     String
+   , right:         Boolean
+   , answer:        String
 });
+mongoose.model('QuestionAnswered', QuestionAnsweredSchema);
+var QuestionAnswered = mongoose.model('QuestionAnswered', 'question_answered');
 
 var BattleSchema = new mongoose.Schema({
    users: [mongoose.Schema.ObjectId]
@@ -79,31 +77,37 @@ var BattledQuestionsSchema = new mongoose.Schema({
    , loaded_alternatives: { type: Boolean, default: false }
    , right: { type: Boolean, default: false }
    , timed_out: { type: Boolean, default: false }
-   , date: { type: Date, default: Date.now }
+   , timestamp: { type: Date, default: Date.now }
 });
 mongoose.model('BattledQuestion', BattledQuestionsSchema);
 var BattledQuestion = mongoose.model('BattledQuestion', 'battled_questions');
 
+Question.count({state:'PUBLISHED'}, function(err, count) {
+   L("There are " + count + " published questions in the database");
+});
+
 
 /*
-Question.find(function(err, docs) {
+Question.find({state:'PUBLISHED'}, function(err, docs) {
    docs.forEach(function(each) {
-      L(each.doc.author);
-      L(each.findAuthor(function(user) {
-	 L("user", user.first_name);
-      }));
-      L("\n");
+      each.findAuthor(function(err, u) {
+	 L("U", u.doc.username);
+      });
+      //each.findGenre(function(err, u) {
+      //L("G", u.doc.name);
+      //});      
    });
 });
  */
 
-Question.count({state:'PUBLISHED'}, function(err, count) {
-   L("There are " + count + " published questions in the database");
-});
+
+
 exports.Question = Question;
 exports.User = User;
+exports.Genre = Genre;
 exports.Battle = Battle;
 exports.BattledQuestion = BattledQuestion;
+exports.QuestionAnswered = QuestionAnswered;
 
 
 /*
