@@ -237,6 +237,7 @@ Battle.prototype.has_everyone_answered = function() {
 };
 
 Battle.prototype.send_next_question = function(callback) {
+   callback = callback == null ? function() {} : callback;
    if (this.sent_questions.length >= this.options.no_questions) {
       // battle is over!
       this.conclude_battle(function(err) {

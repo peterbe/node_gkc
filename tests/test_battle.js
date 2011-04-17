@@ -19,6 +19,41 @@ MockClient.prototype.send = function(msg) {
    this._sent_messages.push(msg);
 };
 
+var Fixtures = (function() {
+   return {
+      battle_two_clients: function (callback) {
+	 var battle = new Battle();
+	 var client = new MockClient('1');
+	 battle.add_participant(client, 'abc123', function() {
+	    var client2 = new MockClient('2');
+	    battle.add_participant(client2, 'def456', function() {
+	       callback(battle, client, client2);
+	    });
+	 });
+      },
+      question_with_genre: function (callback) {
+	 var genre = new models.Genre();
+	 genre.name = "Geography";
+	 genre.save(function(err) {
+	    var question = new models.Question();
+	    question.text = 'Hungry?';
+	    question.answer = 'Yes';
+	    question.alternatives = ['Yes', 'Very', 'No', 'Rav'];
+	    question.spell_correct = true;
+	    question.state = 'PUBLISHED';
+	    question.genre = {
+	       "ref" : "genres",
+	       "oid" : genre._id
+	    };
+	    question.save(function(err) {
+	       callback(question, genre);
+	    });
+	 });
+      }
+   }
+})();
+
+
 var connection;
 module.exports = testCase({
    setUp: function(callback) {
@@ -51,7 +86,13 @@ module.exports = testCase({
 	 });
       });
    },
-   test_battle_winner_1: function(test) {
+   test_basic_battle_from_fixture: function (test) {
+      Fixtures.battle_two_clients(function(battle, client1, client2) {
+	 test.ok(!battle.is_open(), 'max reached');
+	 test.done();
+      });
+   },
+   test_battle_winner_tie: function(test) {
       var battle = new Battle();
       var client = new MockClient('1');
       battle.add_participant(client, 'abc123', function() {
@@ -62,12 +103,23 @@ module.exports = testCase({
 	    battle.increment_score(client, 3);
 	    test.equal(battle.get_winner(), client);
 	    battle.increment_score(client2, 2);
-	    test.ok(!battle.get_winner());
+	    test.ok(!battle.get_winner()); // tie!
 	    test.done();
 	 });
       });
    },
-
+   test_battle_winner_one: function (test) {
+      Fixtures.battle_two_clients(function (battle, client, client2) {
+	 test.ok(!battle.get_winner());
+	 battle.increment_score(client2, 1);
+	 battle.increment_score(client, 3);
+	 test.ok(battle.get_winner());
+	 test.equal(client, battle.get_winner());
+	 battle.increment_score(client2, 3);
+	 test.equal(client2, battle.get_winner());
+	 test.done();
+      });
+   },
    test_battle_sending: function(test) {
       var battle = new Battle();
       var client = new MockClient('1');
@@ -85,7 +137,6 @@ module.exports = testCase({
 	 });
       });
    },
-
    test_has_answered: function(test) {
       var battle = new Battle();
       var client = new MockClient('1');
@@ -103,6 +154,19 @@ module.exports = testCase({
 	    test.ok(battle.has_everyone_answered());
 	    test.done();
 	 });
+      });
+   },
+   test_has_answered_from_fixture: function (test) {
+      Fixtures.battle_two_clients(function(battle, client, client2) {
+	 test.ok(!battle.has_everyone_answered());
+	 test.ok(!battle.has_answered(client));
+	 battle.remember_has_answered(client);
+	 test.ok(!battle.has_everyone_answered());
+	 test.ok(battle.has_answered(client));
+	 battle.remember_has_answered(client2);
+	 test.ok(battle.has_answered(client2));
+	 test.ok(battle.has_everyone_answered());
+	 test.done();
       });
    },
    test_check_answer: function(test) {
@@ -187,4 +251,53 @@ module.exports = testCase({
 	 });
       });
    },
+   test_send_next_question: function(test) {
+      var genre = new models.Genre();
+      genre.name = "Geography";
+      genre.save(function(err) {
+	 var question = new models.Question();
+	 question.text = 'Hungry?';
+	 question.answer = 'Yes';
+	 question.spell_correct = true;
+	 question.state = 'PUBLISHED';
+	 question.genre = {
+	    "ref" : "genres",
+	    "oid" : genre._id
+	 };
+	 question.save(function(err) {
+	    Fixtures.battle_two_clients(function(battle, client, client2) {
+	       battle.options.no_questions = 1;
+	       battle.send_next_question(function(err) {
+		  test.equal(client._sent_messages.length, 1);
+		  test.equal(client2._sent_messages.length, 1);
+		  battle.close_current_question(function() {
+		     test.equal(battle.sent_questions.length, 1);
+		     test.ok(!battle.current_question);
+		     battle.send_next_question(function(err) {
+			test.equal(client._sent_messages.length, 3);
+			test.equal(client2._sent_messages.length, 3);
+			test.equal(client._sent_messages[2].winner.draw, true);
+			test.equal(client2._sent_messages[2].winner.draw, true);
+			test.done();
+		     });
+		  });
+	       });
+	    });
+	 });
+      });
+   },   
+   test_loading_alternatives: function (test) {
+      Fixtures.question_with_genre(function(question, genre) {
+	 Fixtures.battle_two_clients(function (battle, client, client2) {
+	    battle.send_next_question(function (err) {
+	       battle.load_alternatives(client, function(err, alternatives) {
+		  test.equals(alternatives.length, 4);
+		  test.ok(battle.has_alternatives(client));
+		  test.ok(!battle.has_alternatives(client2));
+		  test.done();
+	       });
+	    });
+	 });
+      });
+   }
 });

@@ -2,9 +2,6 @@
 <html>
   <head>
     <title>Play!!</title>
-    <script src="/js/json.js"></script> <!-- for ie -->
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="/js/jquery-1.5.2.min.js"></script>
   </head>
   <body>
     
@@ -68,6 +65,21 @@
       #you_lost h3 { color:red; }
       #you_drew h3 { color:orange; }
       #scoreboard { position:absolute; top:50px; right:25px; width:200px; border:1px solid black; }
+      #timer {
+        width:90px;
+        background: #f36;
+        color: #fff;
+        font-size: 35px;
+        font-weight: bold;
+        height: 90px;
+        line-height: 90px;
+        margin: 10px 0 0 0;
+        text-align: center;
+	border-radius: 20px;
+	-moz-border-radius: 20px;
+	-webkit-border-radius: 20px;
+        /*text-shadow: -2px 2px 0px rgba(0,0,0,.2);*/
+      }
     </style>
     <hr>
     <p><a href="http://gkc/">Exit and try again</a></p>
@@ -78,6 +90,10 @@
     <script type="text/javascript">
     var Global=<%- global_config %>;
     </script>
+    <script src="/js/json.js"></script> <!-- for ie (XXX: really?) -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/jquery-1.5.2.min.js"></script>
+    <script src="/js/rumbler.js"></script>
     <script src="/js/scoreboard.js"></script>
     <script src="/js/play.js"></script>
   </body>

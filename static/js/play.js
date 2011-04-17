@@ -22,11 +22,50 @@ function esc(msg){
    return msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 };
 
+var Clock = (function () {
+   var _clock
+     , _callback
+     , _init_seconds;
+   return {
+      stop: function () {
+	 clearTimeout(_clock);
+      },
+      start: function (seconds, callback) {
+	 Rumbler.stop();
+	 _init_seconds = seconds;
+	 Clock.tick(seconds);
+	 _callback = callback;
+      },
+      tick: function (seconds) {
+	 $('#timer').text(seconds);
+	 if (seconds > 0) {
+	    _clock = setTimeout(function() {
+	       Clock.tick(seconds - 1);
+	    }, 1000);
+	    var p = parseInt(100 * seconds / _init_seconds);
+	    // p is percentage of time left
+	    // max rumble speed is 200 (quite arbitrary)
+	    var rumbleSpeed;
+	    if (p < 30) {
+	       rumbleSpeed = 1 * p;
+	       var range;
+	       if      (p < 1) range = 6;
+	       else if (p < 5) range = 4;
+	       else if (p < 10) range = 3;
+	       else    range = 2;
+	       Rumbler.start($('#timer'), rumbleSpeed, range)
+	    }
+	 } else {
+	    _callback();
+	 }
+      }
+   }
+})();
+
 
 var question_handler = (function() {
    var _current_question
      , _initialized = false
-     , _timer_clock
      , _timer_callback
      , _has_answered = false;
    
@@ -55,11 +94,13 @@ var question_handler = (function() {
 	 $('#alternatives').fadeTo(0, 1.0);
 	 //$('#question_id').val(data.question.id);
 	 
-	 if (_timer_clock) {
-	    clearTimeout(_timer_clock);
-	 }
+	 Clock.stop();
+	 Clock.start(30, this.timed_out);
+	 //if (_timer_clock) {
+	 //   clearTimeout(_timer_clock);
+	 //}
 	 //L('_timer_clock', _timer_clock);
-	 this.start_timer(this.timed_out);
+	 //this.start_timer(this.timed_out);
 	 $('#answer').focus();
 	 
 	 // check if an image was loaded to the previous question
@@ -71,6 +112,9 @@ var question_handler = (function() {
 	 }
       },
       timed_out: function() {
+	 $('#question li.current').addClass('past');
+	 $('#answer').removeAttr('readonly');
+	 
 	 $('li.current')
 	   .append($('<img>', {src:'/images/hourglass.png',
 		alt:'Timed out'
@@ -93,7 +137,7 @@ var question_handler = (function() {
 		 .append($('<a>', {
 		 href:Global.HIGHSCORE_URL,
 		      text:"Check out where you are now on the Highscore list"}));
-;
+
 	    } else {
 	       $('#you_lost').show()
 		 .append($('<a>', {
@@ -104,7 +148,8 @@ var question_handler = (function() {
 	 }
       },
       stop: function(information) {
-	 clearTimeout(_timer_clock);
+	 Clock.stop();
+	 
 	 //$('#question li.current').removeClass('current').addClass('past');
 	 $('#timer').hide();
 	 $('form#respond').fadeTo(900, 0.4);
@@ -113,10 +158,11 @@ var question_handler = (function() {
 	    $('#information').show();
 	 }
       },
-      start_timer: function(callback) {
-	 _timer_callback = callback;
-	 this.timer(30);
-      },
+      //start_timer: function(callback) {
+      //  _timer_callback = callback;
+      // this.timer(30);
+      //},
+      /*
       timer: function(seconds) {
 	 $('#timer').text(seconds);
 	 if (seconds > 0) {
@@ -130,6 +176,7 @@ var question_handler = (function() {
 	    _timer_callback();
 	 }
       },
+       */
       right_answer: function() {
 	 $('li.current')
 	   .append($('<img>', {src:'/images/right.png',

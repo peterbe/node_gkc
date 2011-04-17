@@ -57,7 +57,9 @@ app.get('/play', function(req, res){
       'HIGHSCORE_URL':'http://kwissle.com/highscore/',
       'HOMEPAGE_URL':'http://kwissle.com/',
    };
-   res.render('battle.html', {global_config:JSON.stringify(global_config)});
+   res.render('battle.html', {
+      global_config:JSON.stringify(global_config)
+   });
 });
 
 app.get('/start', function(req, res){
@@ -138,7 +140,9 @@ socket.on('connection', function(client){
 	       player_names.push(user_names.get(participant.sessionId));
 	    });
 	    battle.send_to_all({init_scoreboard: player_names});
-	    battle.send_next_question();
+	    battle.send_next_question(function() {
+	       // pass
+	    });
 	 } else {
 	    battle.send_to_all({news:"Still waiting for more participants"});
 	 }

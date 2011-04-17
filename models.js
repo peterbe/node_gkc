@@ -82,11 +82,13 @@ var BattledQuestionsSchema = new mongoose.Schema({
 mongoose.model('BattledQuestion', BattledQuestionsSchema);
 var BattledQuestion = mongoose.model('BattledQuestion', 'battled_questions');
 
+/*
 console.log("Once?");
 Question.count({state:'PUBLISHED'}, function(err, count) {
    console.log("There are " + count + " published questions in the database");
 });
 console.log('once after');
+*/
 
 
 /*
