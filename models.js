@@ -82,9 +82,11 @@ var BattledQuestionsSchema = new mongoose.Schema({
 mongoose.model('BattledQuestion', BattledQuestionsSchema);
 var BattledQuestion = mongoose.model('BattledQuestion', 'battled_questions');
 
+console.log("Once?");
 Question.count({state:'PUBLISHED'}, function(err, count) {
-   L("There are " + count + " published questions in the database");
+   console.log("There are " + count + " published questions in the database");
 });
+console.log('once after');
 
 
 /*
@@ -109,44 +111,3 @@ exports.Battle = Battle;
 exports.BattledQuestion = BattledQuestion;
 exports.QuestionAnswered = QuestionAnswered;
 
-
-/*
-     [{id: 'q1',
-	text: 'What year was Rolling Stones formed?',
-	answer:'1962',
-	accept:['62'],
-	alternatives:['1958', '1962', '1969', '1974'],
-	genre: 'Entertainment', spell_correct:false
-     },
-      {id: 'q2',
-	   text: 'What number is next in this sequence: 1, 2, 3, 4, ...?',
-	   answer: '5', accept:[], alternatives:['5','7','9','13'],
-	   genre: 'Mathematics', spell_correct:false
-      },
-      {id: 'q3',
-	   text: 'What is the capital of France?',
-	   answer: 'Paris', accept:[], alternatives:['Paris','Berlin','Brussels','Stockholm'],
-	   genre: 'Geography', spell_correct:true
-      },
-      {id: 'q4',
-	   text: 'What is 12 divided by 2 times 3?',
-	   answer: '18', accept:[], alternatives:['12','16','18','24'],
-	   genre: 'Mathematics', spell_correct:false
-      },
-      {id: 'q5',
-	   text: 'What country is Budapest the capital of?',
-	   answer: 'Hungary', accept:[], alternatives:['Hungary','Germany','Estonia','Sweden'],
-	   genre: 'Geography', spell_correct:true
-      },
-      {id: 'q6',
-	   text: 'What is 11 * 101?',
-	   answer: '1111', accept:[], alternatives:['1101','1011','1111','1110'],
-	   genre: 'Mathematics', spell_correct:false
-      },
-      {id: 'q7',
-	   text: 'How many bytes are there in one kilobyte?',
-	   answer: '1024', accept:[], alternatives:['124','512','1000','1024'],
-	   genre: 'Science', spell_correct:false
-      }
-     ];
-*/

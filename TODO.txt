@@ -4,6 +4,7 @@
 4) fixing the bugs when it concludes the battle
 5) fixing the draw bug by adding an extra question into overtime.
 
+* support/* as git submodules
 
 * Tests with Expresso 
   http://visionmedia.github.com/expresso/

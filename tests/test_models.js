@@ -4,20 +4,30 @@ var testCase = require('nodeunit').testCase;
 var models = require('../models');
 var mongoose = require('mongoose');
 
+/*
 var connection = mongoose.connect('mongodb://localhost/test-gkc', function(err) {
    if (err) throw new Error(err.message);
 });
+*/
 
 module.exports = testCase({
    setUp: function(callback) {
-      models.User.remove({}, function(err, stuff) {
-	 models.Question.remove({}, function(err) {
-	    callback();
+      connection = mongoose.connect('mongodb://localhost/test-gkc', function(err) {
+	 models.User.remove({}, function(err, stuff) {
+	    models.Question.remove({}, function(err) {
+	       callback();
+	    });
 	 });
       });
    },
    tearDown: function(callback) {
-      callback();
+      models.User.remove({}, function(err, stuff) {
+	 models.Question.remove({}, function(err) {
+	    connection.connection.close(function(err) {
+	       callback();
+	    });
+	 });
+      });
    },
    test_user_basics: function(test) {
       models.User.count({}, function(err, count) {
@@ -163,4 +173,3 @@ module.exports = testCase({
       });
    }
 });
-

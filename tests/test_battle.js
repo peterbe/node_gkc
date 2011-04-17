@@ -4,9 +4,11 @@ var models = require('../models');
 var testCase = require('nodeunit').testCase;
 var mongoose = require('mongoose');
 
+/*
 var connection = mongoose.connect('mongodb://localhost/test-gkc', function(err) {
    if (err) throw new Error(err.message);
 });
+*/
 
 var MockClient = function(sessionId) {
    this.sessionId = sessionId;
@@ -17,18 +19,23 @@ MockClient.prototype.send = function(msg) {
    this._sent_messages.push(msg);
 };
 
+var connection;
 module.exports = testCase({
    setUp: function(callback) {
-      models.User.remove({}, function(err, stuff) {
-	 models.Question.remove({}, function(err) {
-	    callback();
+      connection = mongoose.connect('mongodb://localhost/test-gkc', function(err) {
+	 models.User.remove({}, function(err, stuff) {
+	    models.Question.remove({}, function(err) {
+	       callback();
+	    });
 	 });
       });
    },
    tearDown: function(callback) {
       models.User.remove({}, function(err, stuff) {
 	 models.Question.remove({}, function(err) {
-	    callback();
+	    connection.connection.close(function(err) {
+	       callback();
+	    });
 	 });
       });
    },
@@ -181,6 +188,3 @@ module.exports = testCase({
       });
    },
 });
-			  
-			  
-		       
