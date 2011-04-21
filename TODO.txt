@@ -4,13 +4,7 @@
 4) fixing the bugs when it concludes the battle
 5) fixing the draw bug by adding an extra question into overtime.
 
-* support/* as git submodules
-
-* Tests with Expresso 
-  http://visionmedia.github.com/expresso/
-
-* A nice pie for the timer in canvas
-  www.phpied.com/wp-content/uploads/2008/02/canvas-pie.html
+* Open stupid Flash port on EC2 and document it
 
 * In Battle there needs to be an associative array remembering who has
   already guessed to the current question.
