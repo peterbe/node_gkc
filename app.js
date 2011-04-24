@@ -1,10 +1,6 @@
-/* battle play
- */
-
-
 // I don't like these. I'd rather depend on npm
-require.paths.unshift('support/express/lib');
-require.paths.unshift('support/express/support/ejs/lib');
+//require.paths.unshift('support/express/lib');
+//require.paths.unshift('support/express/support/ejs/lib');
 
 var http = require('http')
   , url = require('url')
@@ -42,7 +38,7 @@ app.configure('production', function(){
    app.use(express.errorHandler());
 });
 
-require.paths.unshift('support/mongoose/lib');
+//require.paths.unshift('support/mongoose/lib');
 var mongoose = require('mongoose');
 var connection = mongoose.connect('mongodb://localhost/gkc', function(err) {
    if (err) {
