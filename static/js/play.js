@@ -95,7 +95,7 @@ var question_handler = (function() {
 	 //$('#question_id').val(data.question.id);
 	 
 	 Clock.stop();
-	 Clock.start(30, this.timed_out);
+	 Clock.start(15, this.timed_out);
 	 //if (_timer_clock) {
 	 //   clearTimeout(_timer_clock);
 	 //}
@@ -135,13 +135,15 @@ var question_handler = (function() {
 	    if (you_won) {
 	       $('#you_won').show()
 		 .append($('<a>', {
+		    target: '_top',
 		 href:Global.HIGHSCORE_URL,
 		      text:"Check out where you are now on the Highscore list"}));
 
 	    } else {
 	       $('#you_lost').show()
 		 .append($('<a>', {
-		    href:Global.HOMEPAGE_URL,
+		    target: '_top',
+		    href: Global.HOMEPAGE_URL,
 		      text:"Go back to the home page"}));
 		 
 	    }

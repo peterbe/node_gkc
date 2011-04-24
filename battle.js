@@ -24,7 +24,7 @@ var Battle = function(options) {
    this.options(merge({
       min_no_people: 2,
       max_no_people: 2,
-      no_questions: 5
+      no_questions: 10
    }, {}), options);
    this.participants = [];
    this.user_ids = [];
