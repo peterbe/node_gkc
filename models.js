@@ -1,4 +1,4 @@
-require.paths.unshift('support/mongoose/lib');
+//require.paths.unshift('support/mongoose/lib');
 var L = require('./utils').L
   , mongoose = require('mongoose')
 ;

@@ -92,15 +92,9 @@ var question_handler = (function() {
 				).addClass('current')
 			      .append($('<span>', {text: question.text})));
 	 $('#alternatives').fadeTo(0, 1.0);
-	 //$('#question_id').val(data.question.id);
 	 
 	 Clock.stop();
 	 Clock.start(15, this.timed_out);
-	 //if (_timer_clock) {
-	 //   clearTimeout(_timer_clock);
-	 //}
-	 //L('_timer_clock', _timer_clock);
-	 //this.start_timer(this.timed_out);
 	 $('#answer').focus();
 	 
 	 // check if an image was loaded to the previous question
@@ -160,31 +154,11 @@ var question_handler = (function() {
 	    $('#information').show();
 	 }
       },
-      //start_timer: function(callback) {
-      //  _timer_callback = callback;
-      // this.timer(30);
-      //},
-      /*
-      timer: function(seconds) {
-	 $('#timer').text(seconds);
-	 if (seconds > 0) {
-	    _timer_clock = setTimeout(function() {
-	       question_handler.timer(seconds - 1);
-	    }, 1000);
-	 } else {
-	    $('#question li.current').addClass('past');
-	    $('#answer').removeAttr('readonly');
-	    //alert("Time's up!");
-	    _timer_callback();
-	 }
-      },
-       */
       right_answer: function() {
 	 $('li.current')
 	   .append($('<img>', {src:'/images/right.png',
 		alt:'Yay! you got it right'
 	   }));
-	         
       },
       wrong_answer: function() {
 	 $('li.current')
@@ -267,6 +241,7 @@ socket.on('connect', function() {
 socket.on('message', function(obj){
    __log_message(obj);
    if (obj.question) {
+      $('#timer:hidden').show(100);
       question_handler.load_question(obj.question);
       $('#your_name:visible').hide();
    } else if (obj.winner) {
@@ -284,6 +259,7 @@ socket.on('message', function(obj){
    } else if (obj.alternatives) {
       alternatives.show(obj.alternatives);
    } else if (obj.init_scoreboard) {
+      $('#scoreboard:hidden').show(500);
       scoreboard.init_players(obj.init_scoreboard);
    } else if (obj.stop) {
       question_handler.stop(obj.stop);

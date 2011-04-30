@@ -1,4 +1,5 @@
 var utils = require('./utils')
+  , assert = require('assert')
   , battles = []
   , current_client_battles = {}
   , L = utils.L
@@ -43,6 +44,7 @@ exports.socket_client_handler = function(client){
       current_client_battles[client.sessionId] = battle;
 
       battle.fetch_user_name(user_id, function(err, name) {
+	 assert.ok(!err);
 	 client.send({your_name:name});
 	 user_names.set(client.sessionId, name);
 
@@ -62,7 +64,6 @@ exports.socket_client_handler = function(client){
 	 }
       });
    });
-
 
    client.on('message', function(message){
       L('Incoming message', message);
@@ -126,9 +127,12 @@ exports.socket_client_handler = function(client){
       } else if (message.timed_out) {
 	 var battle = current_client_battles[client.sessionId];
 	 battle.send_to_all({message:'Question timed out'});
-	 battle.close_current_question(function() {
-	    battle.send_next_question();
-	 });
+	 if (battle.curren_question !== null) {
+	    // only do this for the first one
+	    battle.close_current_question(function() {
+	       battle.send_next_question();
+	    });
+	 }
       } else if (message.set_user_name) {
 	 /* OUT
 	 throw new Error("This is obsolete and should be taken care of by the database and the user_id");

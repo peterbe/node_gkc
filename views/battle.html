@@ -2,8 +2,11 @@
 <html>
   <head>
     <title>Play!!</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <!--<link rel="stylesheet" type="text/css" href="/static/css/style.css">-->
+    <link rel="stylesheet" type="text/css" href="<%- remote_css_url %>">
   </head>
-  <body>
+  <body id="body">
     
     <h1>Battle</h1>
     <div id="your_name" style="display:none">
@@ -11,8 +14,8 @@
       We're about to begin playing shortly.<br>
       Just waiting for someone to play against.
     </div>
-    <div id="timer"></div>
-    <div id="scoreboard"></div>
+    <div id="timer" style="display:none"></div>
+    <div id="scoreboard" style="display:none"></div>
     
     <div id="you_won" class="finish" style="display:none">
       <h3>You won!</h3>
@@ -53,18 +56,18 @@
     </form>-->
     
     <style>
-      #log { height: 300px; overflow: auto; width: 800px; border: 1px solid #eee; font: 13px Helvetica, Arial; }
+      #log { height: 300px; overflow: auto; width: 600px; border: 1px solid #eee; font: 11px Helvetica, Arial; }
       #log p { padding: 4px; margin: 0; }
-      #log p:nth-child(odd) { background: #F6F6F6; }
+      #log p:nth-child(odd) { }
       li.past span { text-decoration:line-through; }
-      dt.disconnected { text-decoration:line-through; color:#ccc; }
-      dd.disconnected { font-size:70%; color:#ccc; }
+      dt.disconnected { text-decoration:line-through; }
+      dd.disconnected { font-size:70%; }
       li.current { font-weight:bold; }
       #you_won, #you_lost, #you_drew { background-color:#efefef; border:1px solid #333; position:relative; z-index:1; }
       #you_won h3 { color:green; }
       #you_lost h3 { color:red; }
       #you_drew h3 { color:orange; }
-      #scoreboard { position:absolute; top:50px; right:25px; width:200px; border:1px solid black; }
+      #scoreboard { position:absolute; top:50px; right:25px; width:200px; border:1px solid white; }
       #timer {
         width:90px;
         background: #f36;
@@ -82,8 +85,6 @@
       }
     </style>
     <hr>
-    <!--<p><a href="http://gkc/">Exit and try again</a></p>-->
-    <p>Log...</p>
     <div id="log">
     
     </div>

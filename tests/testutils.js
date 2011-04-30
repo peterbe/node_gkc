@@ -1,3 +1,4 @@
+var L = require('../utils').L;
 var Battle = require('../battle').Battle;
 var models = require('../models');
 
@@ -7,6 +8,7 @@ var MockClient = function(sessionId) {
 };
 
 MockClient.prototype.send = function(msg) {
+   L("SENT", this.sessionId, msg);
    this._sent_messages.push(msg);
 };
 

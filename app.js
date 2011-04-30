@@ -28,17 +28,27 @@ app.configure(function(){
 
 });
 
+var GLOBAL_CONFIG;
 
 app.configure('development', function(){ //default
+   GLOBAL_CONFIG = {
+      'HIGHSCORE_URL':'http://localhost:8000/highscore/',
+      'HOMEPAGE_URL':'http://localhost:8000/',
+   };   
    app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
 });
 
 app.configure('production', function(){
    // $ NODE_ENV=production node app.js
+   GLOBAL_CONFIG = {
+      'HIGHSCORE_URL':'http://kwissle.com/highscore/',
+      'HOMEPAGE_URL':'http://kwissle.com/',
+   };
    app.use(express.errorHandler());
 });
 
 //require.paths.unshift('support/mongoose/lib');
+//
 var mongoose = require('mongoose');
 var connection = mongoose.connect('mongodb://localhost/gkc', function(err) {
    if (err) {
@@ -48,16 +58,12 @@ var connection = mongoose.connect('mongodb://localhost/gkc', function(err) {
 
 app.get('/', function(req, res){
    res.send("All is working fine");
-   //res.render('battle.html', {global_config:JSON.stringify(global_config)});
 });
 
 app.get('/play', function(req, res){
-   var global_config = {
-      'HIGHSCORE_URL':'http://kwissle.com/highscore/',
-      'HOMEPAGE_URL':'http://kwissle.com/',
-   };
    res.render('battle.html', {
-      global_config:JSON.stringify(global_config)
+      global_config:JSON.stringify(GLOBAL_CONFIG),
+	remote_css_url: GLOBAL_CONFIG.HOMEPAGE_URL + 'static/css/style.css'
    });
 });
 

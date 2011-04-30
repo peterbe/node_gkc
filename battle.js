@@ -1,4 +1,5 @@
 var utils = require('./utils')
+  , assert = require('assert')
   , L = utils.L
   , forEach = utils.forEach
 ;
@@ -99,7 +100,12 @@ Battle.prototype.add_participant = function(participant, user_id, callback) {
 
 Battle.prototype.fetch_user_name = function(user_id, callback) {
    models.User.findOne({_id: user_id}, function(err, result) {
-      callback(err, result.username);
+      assert.ok(!err);
+      if (err) {
+	 callback(err, null);
+      } else {
+	 callback(err, result.username);
+      }
    });
 };
 
