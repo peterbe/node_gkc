@@ -73,6 +73,7 @@ var question_handler = (function() {
       initialize: function() {
 	 $('#respond').show();
 	 $('#waiting').hide();
+	 $('#your_name').hide();
 	 _initialized = true;
       },
       load_question: function(question) {
@@ -81,7 +82,8 @@ var question_handler = (function() {
 	 }
 	 _has_answered = false;
 	 _current_question = question;
-	 $('#wrong:visible').hide();
+	 $('#timer:hidden').show(100);
+	 $('#input:hidden').show();
 	 $('#alternatives input.alternative').remove();
 	 $('#alternatives-outer:visible').hide();
 	 $('#load-alternatives:hidden').show();
@@ -92,7 +94,7 @@ var question_handler = (function() {
 				).addClass('current')
 			      .append($('<span>', {text: question.text})));
 	 $('#alternatives').fadeTo(0, 1.0);
-	 
+	 $('#alert:visible').hide(400);
 	 Clock.stop();
 	 Clock.start(15, this.timed_out);
 	 $('#answer').focus();
@@ -108,14 +110,18 @@ var question_handler = (function() {
       timed_out: function() {
 	 $('#question li.current').addClass('past');
 	 $('#answer').removeAttr('readonly');
-	 
+	 var msg = "Both too slow";
 	 $('li.current')
 	   .append($('<img>', {src:'/images/hourglass.png',
-		alt:'Timed out'
+		alt:msg
 	   }));
+	 $('#input').hide();
+	 $('#alert').text(msg).show(100);
+	 $('#timer').hide(100);
 	 socket.send({timed_out:true});
       },
       finish: function(you_won, draw) {
+	 $('#input').hide();
 	 question_handler.stop();
 	 draw = draw || false;
 	 $('#question li.current').removeClass('current').addClass('past');
@@ -139,33 +145,45 @@ var question_handler = (function() {
 		    target: '_top',
 		    href: Global.HOMEPAGE_URL,
 		      text:"Go back to the home page"}));
-		 
 	    }
 	 }
       },
-      stop: function(information) {
+      stop: function(information) { // the whole battle is over
 	 Clock.stop();
-	 
 	 //$('#question li.current').removeClass('current').addClass('past');
 	 $('#timer').hide();
-	 $('form#respond').fadeTo(900, 0.4);
+	 //$('form#respond').fadeTo(900, 0.4);
+	 $('#input').hide(800);
 	 if (information && information.message) {
 	    $('#information p').text(information.message);
 	    $('#information').show();
 	 }
       },
       right_answer: function() {
+	 var msg = 'Yay! you got it right';
 	 $('li.current')
 	   .append($('<img>', {src:'/images/right.png',
-		alt:'Yay! you got it right'
+		alt:msg
 	   }));
+	 $('#alert').text(msg).show(100);
       },
       wrong_answer: function() {
+	 var msg = 'Sorry. You got it wrong';
 	 $('li.current')
 	   .append($('<img>', {src:'/images/wrong.png',
-		alt:'Sorry. You got it wrong'
+		alt:msg
 	   }));
+	 $('#alert').text(msg).show(100);
       },
+      too_slow: function() {
+	 var msg = 'Sorry. You were too slow';
+	 $('li.current')
+	   .append($('<img>', {src:'/images/wrong.png',
+		alt:msg
+	   }));
+	 $('#alert').text(msg).show(100);
+      },
+      
       send_answer: function(answer) {
 	 $('#answer').attr('readonly','readonly').attr('disabled','disabled');
 	 socket.send({answer:answer});
@@ -241,9 +259,9 @@ socket.on('connect', function() {
 socket.on('message', function(obj){
    __log_message(obj);
    if (obj.question) {
-      $('#timer:hidden').show(100);
+      
       question_handler.load_question(obj.question);
-      $('#your_name:visible').hide();
+      
    } else if (obj.winner) {
       if (obj.winner.draw) {
 	 question_handler.finish(null, true);
@@ -264,9 +282,15 @@ socket.on('message', function(obj){
    } else if (obj.stop) {
       question_handler.stop(obj.stop);
    } else if (obj.answered) {
+      $('#timer').hide();
+      $('#input').hide();
       if (obj.answered.right) {
+	 Clock.stop();
 	 question_handler.right_answer();
+      } else if (obj.answered.too_slow) {
+	 question_handler.too_slow();
       } else {
+	 Clock.stop();
 	 question_handler.wrong_answer();
       }
    } else if (obj.error) {

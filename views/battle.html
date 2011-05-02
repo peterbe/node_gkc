@@ -14,8 +14,11 @@
       We're about to begin playing shortly.<br>
       Just waiting for someone to play against.
     </div>
-    <div id="timer" style="display:none"></div>
     <div id="scoreboard" style="display:none"></div>
+    
+    <div id="timer-wrapper">
+    <div id="timer" style="display:none"></div>
+    </div>
     
     <div id="you_won" class="finish" style="display:none">
       <h3>You won!</h3>
@@ -36,19 +39,19 @@
     
     <form action="" id="respond" style="display:none">
     <input type="hidden" id="question_id">
-    <div id="question-outer">
       <h3>Question:</h3>
       <ol id="question"></ol>
-      <div id="alternatives-outer" style="display:none">
-        <h4>Alternatives:</h4>
-        <div id="alternatives"></div>
+      <div id="input">
+        <div id="alternatives-outer" style="display:none">
+          <h4>Alternatives:</h4>
+          <div id="alternatives"></div>
+        </div>
+        <p id="typed"><strong>Answer:</strong>
+        <input name="text" id="answer" autocomplete="off"><input type="submit" value="Go!">
+        </p>
+        <p><input type="button" id="load-alternatives" value="Give me alternatives"></p>
       </div>
-    </div>
-    
-      <p id="typed"><strong>Answer:</strong>
-      <input name="text" id="answer" autocomplete="off"><input type="submit" value="Go!"></p>
-      <p id="alternatives"><input type="button" id="load-alternatives" value="Give me alternatives"></p>
-      <span id="wrong" style="display:none">Wrong :(</span>
+      <p id="alert"><!-- where messages about getting it right or wrong goes --></p>
     </form>
 
     <!--<form id="form" onsubmit="send(); return false">
@@ -83,6 +86,8 @@
 	-webkit-border-radius: 20px;
         /*text-shadow: -2px 2px 0px rgba(0,0,0,.2);*/
       }
+      #timer-wrapper { float:left; width:100px; }
+      #respond { margin-left:105px; }
     </style>
     <hr>
     <div id="log">

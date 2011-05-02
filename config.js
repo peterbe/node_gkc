@@ -1,0 +1,1 @@
+exports.QUESTION_PAUSE_SECONDS = 3;

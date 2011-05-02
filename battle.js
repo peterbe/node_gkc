@@ -39,6 +39,8 @@ var Battle = function(options) {
    this.loaded_alternatives = [];
    // track who has attempted to answer the current question
    this.attempted = [];
+   // used to queue people checking answers
+   this._checking_answer = [];
    this.battle;
    
 };
@@ -225,7 +227,8 @@ Battle.prototype.close_current_question = function(callback) {
    }
    this.current_question = null;
    this.loaded_alternatives = [];
-   this.attempted = [];
+   this.attempted = [];   
+   this._checking_answer = [];
    callback();
 };
 

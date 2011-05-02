@@ -1,4 +1,5 @@
 var utils = require('./utils')
+  , config = require('./config')
   , assert = require('assert')
   , battles = []
   , current_client_battles = {}
@@ -87,36 +88,55 @@ exports.socket_client_handler = function(client){
 	 // in the queue, we'll need to send to everyone in the queue that they
 	 // were wrong.
 	 var battle = current_client_battles[client.sessionId];
-	 battle.send_to_everyone_else(client, {message: user_names.get(client.sessionId) + ' answered something'});
+	 
+	 // commenting this out because it's better to announce when someone
+	 // answered right or wrong, not just that they have answered.
+	 //battle.send_to_everyone_else(client, 
+	 //  {message: user_names.get(client.sessionId) + ' answered something'});
+	 
 	 if (battle.has_answered(client)) {
 	    client.send({error:"Has already answered"});
+	    return;
 	 } else {
 	    battle.remember_has_answered(client);
 	 }
-	 battle.check_answer(message.answer, function(err, got_it_right) {
-	    if (err) {
-	       throw new Error(err);
-	    }
-	    if (got_it_right) {
-	       var points = 3;
-	       if (battle.has_alternatives(client)) {
-		  points = 1;
+	 battle._checking_answer.push({client: client, answer: message.answer});
+	 while (battle._checking_answer.length) {
+	    var each = battle._checking_answer.shift(); // pop *first* item off
+	    battle.check_answer(each.answer, function(err, got_it_right) {
+	       if (err) {
+		  throw new Error(err);
 	       }
-	       battle.increment_score(client, points);
-	       battle.send_to_all({update_scoreboard:[user_names.get(client.sessionId), points]});
-	       client.send({answered:{right:true}});
-	       battle.send_to_everyone_else(client, {answered: {right:false}});
-	       battle.close_current_question(function() {
-		  battle.send_next_question();
-	       });
-	    } else if (battle.has_everyone_answered()) {
-	       L("everyone has answered");
-	       battle.send_to_all({answered: {right:false}});
-	       battle.close_current_question(function() {
-		  battle.send_next_question();
-	       });
-	    }
-	 });
+	       if (got_it_right) {
+		  battle._checking_answer = [];
+		  var points = 3;
+		  if (battle.has_alternatives(each.client)) {
+		     points = 1;
+		  }
+		  battle.increment_score(each.client, points);
+		  battle.send_to_all({update_scoreboard:[user_names.get(each.client.sessionId), points]});
+		  each.client.send({answered:{right:true}});
+		  battle.send_to_everyone_else(each.client, {answered: {too_slow:true}});
+		  battle.close_current_question(function() {
+		     setTimeout(function() {
+			battle.send_next_question();
+		     }, config.QUESTION_PAUSE_SECONDS * 1000);
+		  });
+	       } else if (battle.has_everyone_answered()) {
+		  battle.send_to_all({answered: {right:false}});
+		  battle.close_current_question(function() {
+		     setTimeout(function() {
+			battle.send_next_question();
+		     }, config.QUESTION_PAUSE_SECONDS * 1000);
+		  });
+	       } else {
+		  each.client.send({answered: {right: false}});
+		  battle.send_to_everyone_else(each.client, 
+					       {message: user_names.get(each.client.sessionId) + ' got it wrong'});
+					    
+	       }
+	    });
+	 }
       } else if (message.alternatives) {
 	 var battle = current_client_battles[client.sessionId];
 	 battle.load_alternatives(client, function(err, alternatives) {
@@ -126,11 +146,14 @@ exports.socket_client_handler = function(client){
 	 });
       } else if (message.timed_out) {
 	 var battle = current_client_battles[client.sessionId];
-	 battle.send_to_all({message:'Question timed out'});
-	 if (battle.curren_question !== null) {
+	 //battle.send_to_all({message:'Question timed out'});
+	 //battle.send_to_all({too_slow:true});
+	 if (battle.current_question !== null) {
 	    // only do this for the first one
 	    battle.close_current_question(function() {
-	       battle.send_next_question();
+	       setTimeout(function() {
+		  battle.send_next_question();
+	       }, config.QUESTION_PAUSE_SECONDS * 1000);
 	    });
 	 }
       } else if (message.set_user_name) {
