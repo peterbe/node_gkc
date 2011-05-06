@@ -34,6 +34,7 @@ app.configure('development', function(){ //default
    GLOBAL_CONFIG = {
       'HIGHSCORE_URL':'http://localhost:8000/highscore/',
       'HOMEPAGE_URL':'http://localhost:8000/',
+      'PRODUCTION': false
    };   
    app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
 });
@@ -43,6 +44,7 @@ app.configure('production', function(){
    GLOBAL_CONFIG = {
       'HIGHSCORE_URL':'http://kwissle.com/highscore/',
       'HOMEPAGE_URL':'http://kwissle.com/',
+      'PRODUCTION': true
    };
    app.use(express.errorHandler());
 });
@@ -57,7 +59,7 @@ var connection = mongoose.connect('mongodb://localhost/gkc', function(err) {
 });
 
 app.get('/', function(req, res){
-   res.send("All is working fine");
+   res.send("All is working fine\nIn production? " + GLOBAL_CONFIG.PRODUCTION);
 });
 
 app.get('/play', function(req, res){
