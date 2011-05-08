@@ -46,7 +46,8 @@ app.configure('production', function(){
       'HOMEPAGE_URL':'http://kwissle.com/',
       'PRODUCTION': true
    };
-   app.use(express.errorHandler());
+   //app.use(express.errorHandler());
+   app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
 });
 
 //require.paths.unshift('support/mongoose/lib');

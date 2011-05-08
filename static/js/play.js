@@ -97,6 +97,7 @@ var question_handler = (function() {
 	 $('#alert:visible').hide(400);
 	 Clock.stop();
 	 Clock.start(15, this.timed_out);
+	 L("focus on answer");
 	 $('#answer').focus();
 	 
 	 // check if an image was loaded to the previous question

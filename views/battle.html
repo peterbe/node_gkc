@@ -54,10 +54,6 @@
       <p id="alert"><!-- where messages about getting it right or wrong goes --></p>
     </form>
 
-    <!--<form id="form" onsubmit="send(); return false">
-      <input type="text" autocomplete="off" id="text"><input type="submit" value="Send">
-    </form>-->
-    
     <style>
       #log { height: 300px; overflow: auto; width: 600px; border: 1px solid #eee; font: 11px Helvetica, Arial; }
       #log p { padding: 4px; margin: 0; }
@@ -89,16 +85,30 @@
       #timer-wrapper { float:left; width:100px; }
       #respond { margin-left:105px; }
     </style>
-    <hr>
-    <div id="log">
+    
+    <div id="log" style="display:none">
     
     </div>
     <script type="text/javascript">
     var Global=<%- global_config %>;
     </script>
-    <script src="/js/json.js"></script> <!-- for ie (XXX: really?) -->
-    <script src="/socket.io/socket.io.js"></script>
+    <!--<script src="/js/json.js"></script> <!-- for ie (XXX: really?) -->
+    <!--<script src="/socket.io/socket.io.js"></script>-->
+    <script src="http://cdn.socket.io/stable/socket.io.js"></script>
+    <script>
+    WEB_SOCKET_DEBUG = false;
+    WEB_SOCKET_SWF_LOCATION = 'http://cdn.socket.io/stable/WebSocketMain.swf';
+    </script>
     <script src="/js/jquery-1.5.2.min.js"></script>
+    <script>
+    $(function () {
+      if (!Global.PRODUCTION) {
+        $('#log').show();
+	WEB_SOCKET_DEBUG = true;
+	
+      }
+    });
+    </script>
     <script src="/js/rumbler.js"></script>
     <script src="/js/scoreboard.js"></script>
     <script src="/js/play.js"></script>
